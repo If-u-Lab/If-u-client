@@ -17,9 +17,7 @@ export default function RootPage() {
         localStorage.removeItem("onboarding_completed")
 
         const hasCompletedOnboarding = localStorage.getItem("onboarding_completed") === "true"
-        console.log("🔍 RootPage - onboarding_completed:", hasCompletedOnboarding)
         if (hasCompletedOnboarding) {
-          console.log("✅ RootPage - Redirecting to /home")
           // Redirect to home page
           router.replace("/home")
           return
