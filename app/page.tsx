@@ -13,9 +13,6 @@ export default function RootPage() {
     // Check if user has completed onboarding
     const checkAuth = () => {
       if (typeof window !== "undefined") {
-        // TEMPORARY: Force reset onboarding to test
-        localStorage.removeItem("onboarding_completed")
-
         const hasCompletedOnboarding = localStorage.getItem("onboarding_completed") === "true"
         if (hasCompletedOnboarding) {
           // Redirect to home page
