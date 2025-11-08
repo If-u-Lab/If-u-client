@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { ClientProviders } from "@/components/client-providers"
+import FCMInitializer from "@/src/components/FCMInitializer"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className={`font-sans antialiased`}>
         <ClientProviders>
+           <FCMInitializer />
           {children}
         </ClientProviders>
         <Analytics />

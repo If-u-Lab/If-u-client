@@ -14,6 +14,7 @@ export default function HomePage() {
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log("🏠 HomePage mounted")
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])

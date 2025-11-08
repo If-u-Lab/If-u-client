@@ -13,8 +13,13 @@ export default function RootPage() {
     // Check if user has completed onboarding
     const checkAuth = () => {
       if (typeof window !== "undefined") {
+        // TEMPORARY: Force reset onboarding to test
+        localStorage.removeItem("onboarding_completed")
+
         const hasCompletedOnboarding = localStorage.getItem("onboarding_completed") === "true"
+        console.log("🔍 RootPage - onboarding_completed:", hasCompletedOnboarding)
         if (hasCompletedOnboarding) {
+          console.log("✅ RootPage - Redirecting to /home")
           // Redirect to home page
           router.replace("/home")
           return

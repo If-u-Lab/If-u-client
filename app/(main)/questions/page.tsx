@@ -12,6 +12,7 @@ export default function QuestionsPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    console.log("📋 QuestionsPage mounted")
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])
