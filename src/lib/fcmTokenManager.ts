@@ -49,7 +49,7 @@ import { getToken, onMessage } from "firebase/messaging";
    // 서버에 토큰 저장하는 함수
    const saveTokenToServer = async (token: string) => {
      try {
-       const response = await fetch("/v1/notifications/devices", {
+       const response = await fetch('${process.env.NEXT_PUBLIC_API_URL}/v1/notifications/devices', {
          method: "POST",
          headers: {
            "Content-Type": "application/json",
