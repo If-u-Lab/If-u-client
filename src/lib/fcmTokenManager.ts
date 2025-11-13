@@ -73,14 +73,14 @@ import { getToken, onMessage } from "firebase/messaging";
    // 앱이 켜져있을 때 알림 받는 함수
    export const onForegroundMessage = async () => {
      const messagingInstance = await messaging();
-     if (!messagingInstance) return;
-     
-     onMessage(messagingInstance, (payload) => {
+     if (!messagingInstance) return null;
+
+     const unsubscribe = onMessage(messagingInstance, (payload) => {
        console.log("포그라운드 메시지 수신:", payload);
-       
+
        const notificationTitle = payload.notification?.title || "새 알림";
        const notificationBody = payload.notification?.body || "";
-       
+
        if (Notification.permission === "granted") {
          new Notification(notificationTitle, {
            body: notificationBody,
@@ -88,4 +88,6 @@ import { getToken, onMessage } from "firebase/messaging";
          });
        }
      });
+
+     return unsubscribe;
    };

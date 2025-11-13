@@ -17,21 +17,30 @@ export default function FCMInitializer() {
         });
     }
 
+    let unsubscribe: (() => void) | null = null;
+
     // FCM 초기화
     const initFCM = async () => {
       console.log('FCM 초기화 시작');
-      
+
       const token = await requestFCMToken();
-      
+
       if (token) {
         console.log('FCM 초기화 완료');
-        onForegroundMessage();
+        unsubscribe = await onForegroundMessage();
       } else {
         console.log('FCM 초기화 실패 (권한 거부 또는 미지원 브라우저)');
       }
     };
 
     initFCM();
+
+    // Cleanup: 컴포넌트 언마운트 시 리스너 해제
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   return null;
