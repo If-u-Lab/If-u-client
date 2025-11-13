@@ -24,13 +24,20 @@ export const analytics = async () => {
   return null;
 };
 
+// Messaging 인스턴스 캐싱 (싱글톤 패턴)
+let messagingInstance: Promise<ReturnType<typeof getMessaging> | null> | null = null;
+
 // Messaging 초기화 (브라우저에서만)
 export const messaging = async () => {
-  if (typeof window !== "undefined") {
-    const supported = await isMessagingSupported();
-    return supported ? getMessaging(app) : null;
+  if (typeof window === "undefined") return null;
+
+  if (!messagingInstance) {
+    messagingInstance = isMessagingSupported().then((supported) =>
+      supported ? getMessaging(app) : null
+    );
   }
-  return null;
+
+  return messagingInstance;
 };
 
 export { app };
