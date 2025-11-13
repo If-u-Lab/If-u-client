@@ -1,7 +1,7 @@
 import { messaging } from "./settingFCM";
 import { getToken, onMessage } from "firebase/messaging";
-   
-   const VAPID_KEY = "BLG-wT3SDdUQGUDROWjycUU-cg_B8eXhGkRrPEHropiMmEEoVVo6zUcfteawgtleJ7I_gjBctaxpIaR97nzpzMY";
+
+   const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
    
    // FCM 토큰을 받아오는 함수
    export const requestFCMToken = async () => {
