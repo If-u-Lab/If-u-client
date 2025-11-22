@@ -1,7 +1,27 @@
 import { messaging } from "./settingFCM";
 import { getToken, onMessage } from "firebase/messaging";
 
-   const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+
+// 디바이스 ID 생성/관리 (localStorage에 저장)
+const getOrCreateDeviceId = (): string => {
+  if (typeof window === "undefined") return "";
+
+  let deviceId = localStorage.getItem("deviceId");
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("deviceId", deviceId);
+  }
+  return deviceId;
+};
+
+// PWA 설치 여부 확인
+const isPwaInstalled = (): boolean => {
+  if (typeof window === "undefined") return false;
+
+  return window.matchMedia("(display-mode: standalone)").matches ||
+         (window.navigator as any).standalone === true;
+};
    
    // FCM 토큰을 받아오는 함수
    export const requestFCMToken = async () => {
@@ -27,10 +47,7 @@ import { getToken, onMessage } from "firebase/messaging";
          
          if (token) {
            console.log("FCM 토큰:", token);
-           
-           // TODO 서버 api 구현 후 주석 해제
-           // await saveTokenToServer(token);
-           
+           await saveTokenToServer(token);
            return token;
          } else {
            console.log("토큰 발급 실패");
@@ -46,29 +63,31 @@ import { getToken, onMessage } from "firebase/messaging";
      }
    };
    
-   // 서버에 토큰 저장하는 함수
-   const saveTokenToServer = async (token: string) => {
-     try {
-       const response = await fetch('${process.env.NEXT_PUBLIC_API_URL}/v1/notifications/devices', {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-           // 인증 토큰이 있다면 추가
-         },
-         body: JSON.stringify({
-            deviceToken: token,
-         }),
-       });
-       
-       if (response.ok) {
-         console.log("토큰이 서버에 저장되었습니다");
-       } else {
-         console.error("토큰 저장 실패:", response.status);
-       }
-     } catch (error) {
-       console.error("서버 저장 오류:", error);
-     }
-   };
+// 서버에 토큰 저장하는 함수
+const saveTokenToServer = async (fcmToken: string) => {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/notifications/devices`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // TODO: 인증 토큰 추가 필요
+        // "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        deviceId: getOrCreateDeviceId(),
+        fcmToken: fcmToken,
+        platform: "WEB",
+        isPwaInstalled: isPwaInstalled(),
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("토큰 저장 실패:", response.status);
+    }
+  } catch (error) {
+    console.error("서버 저장 오류:", error);
+  }
+};
    
    // 앱이 켜져있을 때 알림 받는 함수
    export const onForegroundMessage = async () => {
