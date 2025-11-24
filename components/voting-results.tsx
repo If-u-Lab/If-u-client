@@ -7,11 +7,10 @@ import { ArrowPathIcon } from "@heroicons/react/24/outline"
 interface VotingResultsProps {
   question: {
     id: string
-    text: string
+    title: string
     options: string[]
     totalVotes: number
     votes: number[]
-    commentCount: number
   }
 }
 

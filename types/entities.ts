@@ -20,8 +20,8 @@ export interface Comment {
  */
 export interface Question {
   id: string
-  text: string
-  question: string
+  title: string
+  description?: string
   category?: string
   options: string[]
   totalVotes: number
@@ -29,7 +29,8 @@ export interface Question {
   commentCount: number
   date: string
   isToday?: boolean
-  views: number
   status: "DRAFT" | "PUBLISHED" | "CLOSED"
   comments?: Comment[]
+  hasVoted: boolean
+  userChoice: number | null
 }

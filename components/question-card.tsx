@@ -5,7 +5,7 @@ import { useState } from "react"
 interface QuestionCardProps {
   question: {
     id: string
-    text: string
+    title: string
     options: string[]
     totalVotes: number
     votes: number[]
@@ -17,6 +17,7 @@ interface QuestionCardProps {
   showResults?: boolean
   selectedOption?: number
   isLoading?: boolean
+  isToday?: boolean
 }
 
 export function QuestionCard({
@@ -25,6 +26,7 @@ export function QuestionCard({
   showResults = false,
   selectedOption: controlledSelectedOption,
   isLoading = false,
+  isToday = false,
 }: QuestionCardProps) {
   const [localSelectedOption, setLocalSelectedOption] = useState<number | null>(null)
 
@@ -43,8 +45,15 @@ export function QuestionCard({
   const isVoteChangeable = question.status !== "CLOSED"
 
   return (
-    <div className="w-full bg-card rounded-lg border border-border p-5 md:p-6 space-y-5">
-      <h3 className="text-lg md:text-xl font-semibold text-foreground line-clamp-3 leading-relaxed">{question.text}</h3>
+    <div className="w-full bg-white rounded-lg border border-border p-4 md:p-6 space-y-4">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-base md:text-lg font-semibold text-foreground line-clamp-3">{question.title}</h3>
+        {isToday && (
+          <span className="text-xs font-semibold text-primary bg-primary/20 px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0">
+            오늘의 질문
+          </span>
+        )}
+      </div>
 
       <div className="space-y-3">
         {question.options.map((option, i) => (
