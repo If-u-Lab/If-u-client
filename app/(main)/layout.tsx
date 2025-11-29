@@ -21,22 +21,24 @@ export default function MainLayout({
 
   // 인증 가드: 로그인하지 않은 사용자는 메인 페이지로 리다이렉트
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    let isMounted = true
+
+    if (!isLoading && !isAuthenticated && isMounted) {
       router.replace("/")
+    }
+
+    return () => {
+      isMounted = false
     }
   }, [isLoading, isAuthenticated, router])
 
-  // 로딩 중이거나 인증되지 않은 경우 로딩 화면 표시
-  if (isLoading) {
+  // 로딩 중이거나, 아직 인증되지 않았다면 리다이렉트 되기 전까지 로딩 화면을 표시합니다.
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <ArrowPathIcon className="w-12 h-12 animate-spin text-primary" />
       </div>
     )
-  }
-
-  if (!isAuthenticated) {
-    return null
   }
 
   return (
