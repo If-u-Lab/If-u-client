@@ -94,40 +94,60 @@ export function useAuth() {
    * 초기 인증 상태 확인
    */
   useEffect(() => {
+    let isMounted = true
+
     const initAuth = async () => {
       const storedToken = getStoredAccessToken()
 
       if (!storedToken) {
-        setIsLoading(false)
+        if (isMounted) setIsLoading(false)
         return
       }
 
       try {
-        setAccessToken(storedToken)
+        if (isMounted) setAccessToken(storedToken)
         const userData = await getMe(storedToken)
-        setUser(userData)
-      } catch (error) {
+        if (isMounted) setUser(userData)
+      } catch (error: any) {
         console.error("인증 상태 확인 실패:", error)
 
-        // 401 에러면 토큰 갱신 시도
-        try {
-          const newToken = await refreshAccessToken()
-          setStoredAccessToken(newToken)
-          setAccessToken(newToken)
-          const userData = await getMe(newToken)
-          setUser(userData)
-        } catch (refreshError) {
-          console.error("토큰 갱신 실패:", refreshError)
+        // 401 에러인 경우에만 토큰 갱신 시도
+        if (error?.status === 401) {
+          try {
+            const newToken = await refreshAccessToken()
+            if (isMounted) {
+              setStoredAccessToken(newToken)
+              setAccessToken(newToken)
+            }
+            const userData = await getMe(newToken)
+            if (isMounted) setUser(userData)
+          } catch (refreshError) {
+            console.error("토큰 갱신 실패:", refreshError)
+            removeStoredAccessToken()
+            if (isMounted) {
+              setAccessToken(null)
+              setUser(null)
+            }
+          }
+        } else {
+          // 401이 아닌 다른 에러는 토큰 갱신 시도 없이 바로 로그아웃 처리
           removeStoredAccessToken()
-          setAccessToken(null)
-          setUser(null)
+          if (isMounted) {
+            setAccessToken(null)
+            setUser(null)
+          }
         }
       } finally {
-        setIsLoading(false)
+        if (isMounted) setIsLoading(false)
       }
     }
 
     initAuth()
+
+    // cleanup: 컴포넌트 언마운트 시 상태 업데이트 방지
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   return {

@@ -51,7 +51,10 @@ export async function getMe(accessToken: string): Promise<User> {
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch user info: ${response.status}`)
+    // 401 에러인 경우 별도 처리를 위해 status를 포함한 에러 throw
+    const error = new Error(`Failed to fetch user info: ${response.status}`)
+    ;(error as any).status = response.status
+    throw error
   }
 
   const result: ApiResponse<User> = await response.json()
