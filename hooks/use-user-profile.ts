@@ -1,13 +1,11 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { UserProfile, ActivityItem } from "@/types/user"
+import { useAuthContext } from "@/contexts/auth-context"
 
-// Mock user profile data
-const mockUserProfile: UserProfile = {
-  id: "user-001",
-  username: "순박한 퀴노아",
-  bio: "매일의 질문으로 세상을 알아가고 있습니다",
+// Mock activity data (실제 API 연동 시 제거)
+const mockActivityData = {
   totalVotes: 47,
   totalComments: 123,
   engagementRate: 89,
@@ -40,9 +38,26 @@ const mockUserProfile: UserProfile = {
 }
 
 export function useUserProfile() {
-  const [profile, setProfile] = useState<UserProfile>(mockUserProfile)
+  const { user } = useAuthContext()
+  const [profile, setProfile] = useState<UserProfile>({
+    id: user?.id.toString() || "user-001",
+    username: user?.nickname || "게스트",
+    bio: "매일의 질문으로 세상을 알아가고 있습니다",
+    ...mockActivityData,
+  })
   const [editMode, setEditMode] = useState(false)
   const [editedBio, setEditedBio] = useState(profile.bio || "")
+
+  // 로그인한 사용자 정보로 프로필 업데이트
+  useEffect(() => {
+    if (user) {
+      setProfile((prev) => ({
+        ...prev,
+        id: user.id.toString(),
+        username: user.nickname,
+      }))
+    }
+  }, [user])
 
   const updateBio = useCallback((newBio: string) => {
     setProfile((prev) => ({

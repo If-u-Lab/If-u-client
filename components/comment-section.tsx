@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageCircle } from "lucide-react"
+import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline"
 import { Button } from "@/components/ui/button"
 import { CommentItem } from "@/components/comment-item"
 import { useComments } from "@/hooks/use-comments"
@@ -33,14 +33,14 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
   }
 
   return (
-    <div className="bg-white rounded-lg border border-border p-6 space-y-4">
+    <div className="bg-card rounded-lg border border-border p-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-foreground flex items-center gap-2">
-          <MessageCircle size={20} className="text-primary" />
+        <h3 className="text-lg md:text-xl font-semibold text-foreground flex items-center gap-2.5">
+          <ChatBubbleLeftIcon className="w-5 h-5 md:w-6 md:h-6 text-primary" />
           소통의 장
         </h3>
-        <span className="text-sm text-muted-foreground">{commentCount}</span>
+        <span className="text-sm md:text-base text-muted-foreground font-medium">{commentCount}개</span>
       </div>
 
       {/* Comments list */}
@@ -79,12 +79,12 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
 
             {/* Reply input */}
             {replyingTo === comment.id && (
-              <div className="ml-6 border-l-2 border-muted pl-4 py-2 space-y-2">
+              <div className="ml-6 border-l-2 border-muted pl-4 py-2 space-y-3">
                 <textarea
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="답글을 입력하세요..."
-                  className="w-full px-3 py-2 rounded-lg bg-muted text-foreground placeholder-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  className="w-full px-4 py-3 rounded-lg bg-muted text-foreground placeholder-muted-foreground text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none leading-relaxed"
                   rows={2}
                 />
                 <div className="flex gap-2 justify-end">
@@ -93,7 +93,7 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-primary hover:bg-primary/90 text-white"
+                    className="bg-primary active:bg-primary/90 text-white"
                     onClick={() => handleSubmitReply(comment.id)}
                   >
                     답글 등록
@@ -106,18 +106,18 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
       </div>
 
       {/* New comment input */}
-      <div className="flex flex-col gap-2 pt-4 border-t border-border">
+      <div className="flex flex-col gap-3 pt-4 border-t border-border">
         <textarea
           value={newCommentText}
           onChange={(e) => setNewCommentText(e.target.value)}
           placeholder="댓글을 입력하세요..."
-          className="w-full px-4 py-2 rounded-lg bg-muted text-foreground placeholder-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-          rows={2}
+          className="w-full px-4 py-3 rounded-lg bg-muted text-foreground placeholder-muted-foreground text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none leading-relaxed"
+          rows={3}
         />
         <div className="flex justify-end">
           <Button
             size="sm"
-            className="bg-primary hover:bg-primary/90 text-white"
+            className="bg-primary active:bg-primary/90 text-white"
             onClick={handleSubmitComment}
             disabled={!newCommentText.trim()}
           >

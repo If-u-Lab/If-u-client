@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
+import { EyeIcon, ChatBubbleLeftIcon, HeartIcon, ChatBubbleOvalLeftEllipsisIcon, ExclamationTriangleIcon, UserCircleIcon } from "@heroicons/react/24/solid"
 
 export default function HomePage() {
   const router = useRouter()
@@ -22,8 +23,26 @@ export default function HomePage() {
 
   if (!question) {
     return (
-      <div className="w-full max-w-2xl mx-auto px-6 pt-8 pb-12 md:px-8 md:pt-10 md:pb-20 text-center py-12">
-        <p className="text-muted-foreground">오늘의 질문을 불러올 수 없습니다</p>
+      <div className="w-full max-w-2xl mx-auto px-6 pt-8 pb-12 md:px-8 md:pt-10 md:pb-20">
+        <div className="text-center py-16 space-y-4">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+              <ExclamationTriangleIcon className="w-8 h-8 text-destructive/60" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-base font-medium text-foreground">오늘의 질문을 불러올 수 없습니다</p>
+              <p className="text-sm text-muted-foreground">잠시 후 다시 시도해주세요</p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium active:scale-95 transition-transform"
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -59,8 +78,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6 px-6 pt-8 pb-12 md:px-8 md:pt-10 md:pb-20">
-      <h1 className="text-2xl md:text-3xl font-bold text-foreground">오늘의 질문</h1>
+    <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
+      <h1 className="text-2xl font-bold text-foreground mb-6">오늘의 질문</h1>
 
       {/* 오늘의 질문 */}
       <div className="space-y-6">
@@ -78,11 +97,11 @@ export default function HomePage() {
         </div>
       </div>
 
-      <hr className="my-6" />
+      <hr className="my-8 border-border" />
 
       {/* 월간 반응이 뜨거운 주제 */}
       <div className="space-y-4">
-        <h2 className="text-lg md:text-xl font-bold text-foreground">월간 반응이 뜨거운 주제</h2>
+        <h2 className="text-xl font-bold text-foreground">뜨거운 주제</h2>
         <div className="space-y-3">
           {trendingTopics.map((topic) => {
             const hasVotedOnTopic = hasUserVoted(topic.id)
@@ -97,16 +116,26 @@ export default function HomePage() {
                 }`}
               >
                 <p
-                  className={`font-medium line-clamp-2 ${
+                  className={`text-base font-medium line-clamp-2 leading-relaxed ${
                     hasVotedOnTopic ? "text-foreground" : "text-muted-foreground"
                   }`}
                 >
                   {topic.question}
                 </p>
-                <div className="flex items-center gap-4 mt-2 text-xs md:text-sm text-muted-foreground">
-                  <span>👁 {topic.views.toLocaleString()}</span>
-                  <span>💬 {topic.commentCount}</span>
-                  {!hasVotedOnTopic && <span className="ml-auto text-xs">투표 후 확인 가능</span>}
+                <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <EyeIcon className="w-4 h-4" />
+                    <span>{topic.views.toLocaleString()}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <ChatBubbleLeftIcon className="w-4 h-4" />
+                    <span>{topic.commentCount}</span>
+                  </span>
+                  {!hasVotedOnTopic && (
+                    <span className="ml-auto px-2.5 py-1 bg-primary/10 text-primary rounded-md text-xs font-semibold">
+                      투표 후 확인
+                    </span>
+                  )}
                 </div>
               </div>
             )
@@ -114,34 +143,48 @@ export default function HomePage() {
         </div>
       </div>
 
-      <hr className="my-6" />
+      <hr className="my-8 border-border" />
 
       {/* Best 공감 댓글 */}
       <div className="space-y-4">
-        <h2 className="text-lg md:text-xl font-bold text-foreground">Best 공감 댓글</h2>
+        <h2 className="text-xl font-bold text-foreground">인기 댓글</h2>
         <div className="space-y-3">
           {bestComments.length > 0 ? (
-            bestComments.map((comment, idx) => (
-              <div key={idx} className="bg-card border border-border rounded-lg p-3 md:p-4">
+            bestComments.map((comment) => (
+              <div key={comment.id} className="bg-card border border-border rounded-lg p-4 md:p-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                    {comment.author?.charAt(0).toUpperCase() || "U"}
-                  </div>
+                  <UserCircleIcon className="w-10 h-10 text-primary/60 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs md:text-sm text-foreground">{comment.author}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 mt-1">
+                    <p className="font-semibold text-sm text-foreground">{comment.author}</p>
+                    <p className="text-base text-foreground/90 line-clamp-2 mt-1.5 leading-relaxed">
                       {comment.text}
                     </p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>❤ {comment.likes || 0}</span>
-                      <span>💬 {comment.replies?.length || 0}</span>
+                    <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <HeartIcon className="w-4 h-4" />
+                        <span>{comment.likes || 0}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <ChatBubbleLeftIcon className="w-4 h-4" />
+                        <span>{comment.replies?.length || 0}</span>
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-center text-muted-foreground py-8">댓글이 없습니다</p>
+            <div className="text-center py-16 space-y-4">
+              <div className="flex justify-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                  <ChatBubbleOvalLeftEllipsisIcon className="w-8 h-8 text-primary/60" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-medium text-foreground">아직 댓글이 없습니다</p>
+                <p className="text-sm text-muted-foreground">첫 번째 댓글을 남겨보세요!</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
