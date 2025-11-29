@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Home, ListIcon, User } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { HomeIcon, ListBulletIcon, UserIcon, ArrowPathIcon } from "@heroicons/react/24/outline"
+import { useAuthContext } from "@/contexts/auth-context"
+import { useEffect } from "react"
 
 export default function MainLayout({
   children,
@@ -10,9 +12,33 @@ export default function MainLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuthContext()
 
   const isActive = (path: string) => {
     return pathname.startsWith(path)
+  }
+
+  // 인증 가드: 로그인하지 않은 사용자는 메인 페이지로 리다이렉트
+  useEffect(() => {
+    let isMounted = true
+
+    if (!isLoading && !isAuthenticated && isMounted) {
+      router.replace("/")
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  // 로딩 중이거나, 아직 인증되지 않았다면 리다이렉트 되기 전까지 로딩 화면을 표시합니다.
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <ArrowPathIcon className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
@@ -30,7 +56,7 @@ export default function MainLayout({
                 : "text-muted-foreground"
             }`}
           >
-            <ListIcon size={24} />
+            <ListBulletIcon className="w-6 h-6" />
             <span className="text-xs font-medium">질문</span>
           </Link>
 
@@ -42,7 +68,7 @@ export default function MainLayout({
                 : "text-muted-foreground"
             }`}
           >
-            <Home size={24} />
+            <HomeIcon className="w-6 h-6" />
             <span className="text-xs font-medium">홈</span>
           </Link>
 
@@ -54,7 +80,7 @@ export default function MainLayout({
                 : "text-muted-foreground"
             }`}
           >
-            <User size={24} />
+            <UserIcon className="w-6 h-6" />
             <span className="text-xs font-medium">마이페이지</span>
           </Link>
         </div>
