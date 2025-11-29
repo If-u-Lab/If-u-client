@@ -20,7 +20,7 @@ const categoryOptions = [
 ]
 
 export function useOnboarding() {
-  const [step, setStep] = useState<"initial" | "slides" | "preferences" | "complete">("initial")
+  const [step, setStep] = useState<"initial" | "slides" | "login">("initial")
   const [preferences, setPreferences] = useState<UserPreferences>({
     interests: [],
     language: "ko",
@@ -32,22 +32,20 @@ export function useOnboarding() {
     if (step === "initial") {
       setStep("slides")
     } else if (step === "slides") {
-      setStep("preferences")
-    } else if (step === "preferences") {
-      setStep("complete")
+      setStep("login")
     }
   }, [step])
 
   const goBack = useCallback(() => {
     if (step === "slides") {
       setStep("initial")
-    } else if (step === "preferences") {
+    } else if (step === "login") {
       setStep("slides")
     }
   }, [step])
 
   const skip = useCallback(() => {
-    setStep("complete")
+    setStep("login")
   }, [])
 
   return {

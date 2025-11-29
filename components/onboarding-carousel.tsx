@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, CheckBadgeIcon, ChatBubbleBottomCenterTextIcon, ChartBarIcon } from "@heroicons/react/24/outline"
 
 interface OnboardingCarouselProps {
   onComplete: () => void
@@ -10,22 +10,22 @@ interface OnboardingCarouselProps {
 
 const slides = [
   {
-    title: "논쟁할수록\n명확해지는 생각",
-    description: "매일 새로운 질문에 답하며\n나의 생각을 정리하고\n다른 사람들의 의견을 들어보세요",
-    icon: "🗳️",
-    color: "from-blue-50 to-blue-100/50",
+    title: "매일, 하나의 질문",
+    description: "친구와의 갈등, 연애 고민, 진로 선택까지\n일상의 모든 순간, 너라면 어떻게 할지\n투표하고 다른 사람들의 선택을 확인하세요",
+    icon: CheckBadgeIcon,
+    gradient: "from-primary/5 via-primary/10 to-primary/5",
   },
   {
-    title: "토론으로 배우는\n새로운 관점",
-    description: "댓글과 대댓글로\n함께하는 토론을 나누고\n다양한 시각을 경험하세요",
-    icon: "💬",
-    color: "from-purple-50 to-purple-100/50",
+    title: "생각을 나누는 공간",
+    description: "투표만으로는 부족하다면\n댓글로 내 이유를 말해보세요\n비슷한 고민을 한 사람들과 함께 이야기 나눠요",
+    icon: ChatBubbleBottomCenterTextIcon,
+    gradient: "from-primary/5 via-primary/10 to-primary/5",
   },
   {
-    title: "우리로 확인하는\n다수의 선택",
-    description: "실시간 투표 결과로\n사회의 다양한 의견을 한눈에\n파악할 수 있습니다",
-    icon: "📊",
-    color: "from-green-50 to-green-100/50",
+    title: "나만의 선택 기록",
+    description: "내가 어떤 선택을 해왔는지\n다른 사람들은 어떻게 생각했는지\n통계로 확인하고 나를 더 잘 이해해보세요",
+    icon: ChartBarIcon,
+    gradient: "from-primary/5 via-primary/10 to-primary/5",
   },
 ]
 
@@ -48,16 +48,24 @@ export function OnboardingCarousel({ onComplete }: OnboardingCarouselProps) {
 
   const slide = slides[currentSlide]
 
-  return (
-    <div
-      className={`min-h-screen flex flex-col items-center justify-center bg-gradient-to-br ${slide.color} p-6 transition-all duration-500`}
-    >
-      <div className="text-center space-y-8 w-full max-w-md">
-        <div className="text-7xl animate-bounce">{slide.icon}</div>
+  const IconComponent = slide.icon
 
-        <div className="space-y-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground whitespace-pre-line text-balance">{slide.title}</h2>
-          <p className="text-base text-muted-foreground whitespace-pre-line leading-relaxed">{slide.description}</p>
+  return (
+    <div className={`min-h-screen flex flex-col items-center justify-center bg-gradient-to-br ${slide.gradient} p-6 transition-all duration-700 ease-out`}>
+      <div className="text-center space-y-8 w-full max-w-md">
+        {/* 아이콘 */}
+        <div className="flex justify-center">
+          <IconComponent className="w-16 h-16 text-primary" />
+        </div>
+
+        {/* 콘텐츠 */}
+        <div className="space-y-4 px-2">
+          <h2 className="text-2xl font-bold text-foreground whitespace-pre-line leading-tight">
+            {slide.title}
+          </h2>
+          <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+            {slide.description}
+          </p>
         </div>
 
         {/* Progress indicators */}
@@ -66,8 +74,8 @@ export function OnboardingCarousel({ onComplete }: OnboardingCarouselProps) {
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}
-              className={`h-2 rounded-full transition-all ${
-                i === currentSlide ? "w-6 bg-primary" : "w-2 bg-muted hover:bg-muted/60"
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentSlide ? "w-8 bg-foreground" : "w-1.5 bg-foreground/20"
               }`}
               aria-label={`Go to slide ${i + 1}`}
             />
@@ -75,21 +83,31 @@ export function OnboardingCarousel({ onComplete }: OnboardingCarouselProps) {
         </div>
 
         {/* Navigation buttons */}
-        <div className="flex gap-2 pt-6">
+        <div className="flex gap-3 pt-6">
           {currentSlide > 0 && (
-            <Button onClick={handlePrev} variant="outline" className="flex-1 h-12 bg-transparent flex items-center justify-center gap-2">
-              <ChevronLeft size={20} />
+            <Button
+              onClick={handlePrev}
+              variant="outline"
+              className="flex-1 h-12 flex items-center justify-center gap-2 font-medium border-2"
+            >
+              <ChevronLeftIcon className="w-5 h-5" />
               이전
             </Button>
           )}
-          <Button onClick={handleNext} className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-semibold flex items-center justify-center gap-2">
-            {currentSlide === slides.length - 1 ? "다음" : "다음"}
-            <ChevronRight size={20} />
+          <Button
+            onClick={handleNext}
+            className="flex-1 h-12 bg-foreground active:scale-95 text-background font-bold flex items-center justify-center gap-2 transition-transform shadow-lg"
+          >
+            {currentSlide === slides.length - 1 ? "시작하기" : "다음"}
+            <ChevronRightIcon className="w-5 h-5" />
           </Button>
         </div>
 
         {/* Skip button */}
-        <button onClick={onComplete} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <button
+          onClick={onComplete}
+          className="text-sm text-muted-foreground active:text-foreground transition-colors p-2 font-medium"
+        >
           건너뛰기
         </button>
       </div>

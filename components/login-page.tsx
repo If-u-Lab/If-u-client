@@ -2,15 +2,14 @@
 import { useOnboarding } from "@/hooks/use-onboarding"
 import { InitialLoginScreen } from "@/components/initial-login-screen"
 import { OnboardingCarousel } from "@/components/onboarding-carousel"
-import { OnboardingPreferences } from "@/components/onboarding-preferences"
-import { OnboardingComplete } from "@/components/onboarding-complete"
+import { OnboardingLoginScreen } from "@/components/onboarding-login-screen"
 
 interface LoginPageProps {
   onLoginSuccess: () => void
 }
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const { step, preferences, proceed, goBack } = useOnboarding()
+  const { step, proceed, goBack } = useOnboarding()
 
   if (step === "initial") {
     return <InitialLoginScreen onStartOnboarding={proceed} />
@@ -20,21 +19,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     return <OnboardingCarousel onComplete={() => proceed()} />
   }
 
-  if (step === "preferences") {
-    return (
-      <OnboardingPreferences
-        notificationsEnabled={preferences.notificationsEnabled}
-        onToggleNotifications={() => {
-          // Handle notification toggle
-        }}
-        onNext={proceed}
-        onBack={goBack}
-      />
-    )
-  }
-
-  if (step === "complete") {
-    return <OnboardingComplete onFinish={onLoginSuccess} />
+  if (step === "login") {
+    return <OnboardingLoginScreen />
   }
 
   return null
