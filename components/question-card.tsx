@@ -43,27 +43,27 @@ export function QuestionCard({
   const isVoteChangeable = question.status !== "CLOSED"
 
   return (
-    <div className="w-full bg-white rounded-lg border border-border p-4 md:p-6 space-y-4">
-      <h3 className="text-base md:text-lg font-semibold text-foreground line-clamp-3">{question.text}</h3>
+    <div className="w-full bg-card rounded-lg border border-border p-5 md:p-6 space-y-5">
+      <h3 className="text-lg md:text-xl font-semibold text-foreground line-clamp-3 leading-relaxed">{question.text}</h3>
 
-      <div className="space-y-2 md:space-y-3">
+      <div className="space-y-3">
         {question.options.map((option, i) => (
           <button
             key={i}
             onClick={() => handleVote(i)}
             disabled={isLoading || !isVoteChangeable}
-            className={`w-full p-3 md:p-4 rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
+            className={`w-full p-4 md:p-5 rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
               selectedOption === i
-                ? "border-primary bg-primary/10 text-primary"
+                ? "border-primary bg-primary/15 text-primary ring-2 ring-primary/30 ring-offset-2"
                 : !isVoteChangeable
-                  ? "border-border bg-muted text-foreground cursor-not-allowed"
-                  : "border-border hover:border-primary/50 text-foreground hover:bg-muted/50"
+                  ? "border-border bg-muted text-foreground cursor-not-allowed opacity-60"
+                  : "border-border active:border-primary/50 text-foreground active:bg-muted/50"
             } ${isLoading ? "opacity-60 cursor-wait" : ""}`}
           >
             <div className="flex items-center justify-between">
-              <span className="truncate">{option}</span>
+              <span className="truncate leading-relaxed">{option}</span>
               {showResults && (
-                <span className="text-xs md:text-sm font-semibold text-muted-foreground flex-shrink-0 ml-2">
+                <span className="text-sm md:text-base font-bold text-muted-foreground flex-shrink-0 ml-3">
                   {question.votes[i].toFixed(1)}%
                 </span>
               )}
@@ -73,12 +73,12 @@ export function QuestionCard({
       </div>
 
       {!showResults && selectedOption === null && (
-        <div className="text-xs md:text-sm text-muted-foreground text-center py-2">
+        <div className="text-sm md:text-base text-muted-foreground text-center py-2">
           {question.totalVotes}명이 투표했습니다
         </div>
       )}
 
-      {isLoading && <div className="text-xs md:text-sm text-muted-foreground text-center py-2">투표 중...</div>}
+      {isLoading && <div className="text-sm md:text-base text-muted-foreground text-center py-2">투표 중...</div>}
     </div>
   )
 }
