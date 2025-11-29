@@ -150,8 +150,8 @@ export default function HomePage() {
         <h2 className="text-xl font-bold text-foreground">인기 댓글</h2>
         <div className="space-y-3">
           {bestComments.length > 0 ? (
-            bestComments.map((comment, idx) => (
-              <div key={idx} className="bg-card border border-border rounded-lg p-4 md:p-5">
+            bestComments.map((comment) => (
+              <div key={comment.id} className="bg-card border border-border rounded-lg p-4 md:p-5">
                 <div className="flex items-start gap-3">
                   <UserCircleIcon className="w-10 h-10 text-primary/60 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
