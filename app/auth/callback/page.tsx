@@ -16,26 +16,45 @@ export default function AuthCallbackPage({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+    let timeoutId: NodeJS.Timeout | null = null
+
     const handleCallback = async () => {
       if (!access_token) {
-        setError("로그인에 실패했습니다. 토큰이 없습니다.")
-        setTimeout(() => router.push("/"), 2000)
+        if (isMounted) {
+          setError("로그인에 실패했습니다. 토큰이 없습니다.")
+        }
+        timeoutId = setTimeout(() => {
+          if (isMounted) router.push("/")
+        }, 2000)
         return
       }
 
       try {
         await login(access_token)
-        // 온보딩 완료 상태로 설정
-        localStorage.setItem("onboarding_completed", "true")
-        router.push("/home")
+        if (isMounted) {
+          router.push("/home")
+        }
       } catch (err) {
         console.error("로그인 처리 실패:", err)
-        setError("로그인 처리 중 오류가 발생했습니다.")
-        setTimeout(() => router.push("/"), 2000)
+        if (isMounted) {
+          setError("로그인 처리 중 오류가 발생했습니다.")
+        }
+        timeoutId = setTimeout(() => {
+          if (isMounted) router.push("/")
+        }, 2000)
       }
     }
 
     handleCallback()
+
+    // cleanup: 컴포넌트 언마운트 시 타이머 정리 및 상태 업데이트 방지
+    return () => {
+      isMounted = false
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
   }, [access_token, login, router])
 
   return (
