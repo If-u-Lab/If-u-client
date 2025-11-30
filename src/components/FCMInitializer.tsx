@@ -2,9 +2,18 @@
 
 import { useEffect } from 'react';
 import { requestFCMToken, onForegroundMessage } from '@/src/lib/fcmTokenManager';
+import { useAuthContext } from '@/contexts/auth-context';
 
 export default function FCMInitializer() {
+  const { accessToken, isAuthenticated } = useAuthContext();
+
   useEffect(() => {
+    // 로그인하지 않았으면 FCM 초기화하지 않음
+    if (!isAuthenticated) {
+      console.log('로그인하지 않아 FCM 초기화를 건너뜁니다');
+      return;
+    }
+
     // Service Worker 등록
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
@@ -23,7 +32,7 @@ export default function FCMInitializer() {
     const initFCM = async () => {
       console.log('FCM 초기화 시작');
 
-      const token = await requestFCMToken();
+      const token = await requestFCMToken(accessToken);
 
       if (token) {
         console.log('FCM 초기화 완료');
@@ -41,7 +50,7 @@ export default function FCMInitializer() {
         unsubscribe();
       }
     };
-  }, []);
+  }, [accessToken, isAuthenticated]);
 
   return null;
 }

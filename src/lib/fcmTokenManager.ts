@@ -24,30 +24,30 @@ const isPwaInstalled = (): boolean => {
 };
    
    // FCM 토큰을 받아오는 함수
-   export const requestFCMToken = async () => {
+   export const requestFCMToken = async (accessToken?: string | null) => {
      try {
        // 브라우저 알림 권한 요청
        console.log("알림 권한 요청 중");
        const permission = await Notification.requestPermission();
-       
+
        if (permission === "granted") {
          console.log("알림 권한 허용됨");
-         
+
          // messaging 함수 실행해서 객체 가져오기
          const messagingInstance = await messaging();
          if (!messagingInstance) {
            console.log("브라우저가 알림을 지원하지 않습니다");
            return null;
          }
-         
+
          // FCM 토큰 발급
          const token = await getToken(messagingInstance, {
            vapidKey: VAPID_KEY,
          });
-         
+
          if (token) {
            console.log("FCM 토큰:", token);
-           await saveTokenToServer(token);
+           await saveTokenToServer(token, accessToken);
            return token;
          } else {
            console.log("토큰 발급 실패");
@@ -64,15 +64,27 @@ const isPwaInstalled = (): boolean => {
    };
    
 // 서버에 토큰 저장하는 함수
-const saveTokenToServer = async (fcmToken: string) => {
+const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/notifications/devices`, {
+    // 인증 토큰이 없으면 저장하지 않음
+    if (!accessToken) {
+      console.warn("인증 토큰이 없어 FCM 토큰을 서버에 저장하지 않습니다");
+      return;
+    }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
+      console.warn("API URL이 설정되지 않았습니다");
+      return;
+    }
+
+    const response = await fetch(`${apiUrl}/v1/notifications/devices`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // TODO: 인증 토큰 추가 필요
-        // "Authorization": `Bearer ${accessToken}`,
+        "Authorization": `Bearer ${accessToken}`,
       },
+      credentials: "include", // 쿠키 포함
       body: JSON.stringify({
         deviceId: getOrCreateDeviceId(),
         fcmToken: fcmToken,
@@ -82,10 +94,14 @@ const saveTokenToServer = async (fcmToken: string) => {
     });
 
     if (!response.ok) {
-      console.error("토큰 저장 실패:", response.status);
+      console.error("FCM 토큰 저장 실패:", response.status);
+      const errorData = await response.json().catch(() => ({}));
+      console.error("에러 상세:", errorData);
+    } else {
+      console.log("FCM 토큰 서버 저장 성공");
     }
   } catch (error) {
-    console.error("서버 저장 오류:", error);
+    console.error("FCM 토큰 서버 저장 오류:", error);
   }
 };
    
