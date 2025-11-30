@@ -575,14 +575,26 @@ export default function Page({
 - Server Components 적용 고려 (현재는 대부분 Client Components)
 - 번들 크기 분석 및 최적화
 
-### 7. 보안 강화
+### 7. 에러 모니터링 및 로깅
+- **에러 추적 서비스 도입**: Sentry, LogRocket, Datadog 등
+- **로깅 정책**:
+  - 개발 환경: `console.log`, `console.error` 모두 허용
+  - 프로덕션 환경: `console.error`만 유지 (에러 추적용)
+  - 민감 정보(토큰, 개인정보 등)는 절대 로깅 금지
+- **프로덕션 빌드 최적화** (선택사항):
+  - Webpack 플러그인으로 `console.log` 자동 제거
+  - 환경별 로깅 레벨 분리
+
+**현재 상태**: 개발 단계로 `console.log`, `console.error` 모두 허용 중
+
+### 8. 보안 강화
 - 사용자 입력 sanitization (XSS 방지)
 - CSRF 토큰 구현
 - Rate limiting 적용
-- 환경 변수로 민감 정보 관리
+- 환경 변수로 민감 정보 관리 ✅ (Firebase Config, VAPID Key 완료)
 
-### 8. 환경 변수 설정
-현재는 환경 변수가 없습니다. API 통합 시 `.env.local` 파일 생성:
+### 9. 환경 변수 설정
+`.env.local` 파일이 이미 생성되어 있습니다. API 서버 구현 시 `NEXT_PUBLIC_API_URL` 업데이트 필요:
 
 ```bash
 NEXT_PUBLIC_API_URL=https://api.example.com
