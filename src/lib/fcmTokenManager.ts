@@ -22,6 +22,26 @@ const isPwaInstalled = (): boolean => {
   return window.matchMedia("(display-mode: standalone)").matches ||
          (window.navigator as any).standalone === true;
 };
+
+// 플랫폼 감지 (WEB_ANDROID, WEB_IOS, WEB_DESKTOP)
+const getPlatform = (): string => {
+  if (typeof window === "undefined") return "WEB";
+
+  const userAgent = window.navigator.userAgent.toLowerCase();
+
+  // Android 감지
+  if (/android/.test(userAgent)) {
+    return "WEB_ANDROID";
+  }
+
+  // iOS 감지 (iPhone, iPad, iPod)
+  if (/iphone|ipad|ipod/.test(userAgent)) {
+    return "WEB_IOS";
+  }
+
+  // 그 외 (Desktop: Windows, Mac, Linux)
+  return "WEB_DESKTOP";
+};
    
    // FCM 토큰을 받아오는 함수
    export const requestFCMToken = async (accessToken?: string | null) => {
@@ -87,7 +107,7 @@ const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) 
       body: JSON.stringify({
         deviceId: getOrCreateDeviceId(),
         fcmToken: fcmToken,
-        platform: "WEB",
+        platform: getPlatform(),
         isPwaInstalled: isPwaInstalled(),
       }),
     });
