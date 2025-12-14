@@ -1,0 +1,19 @@
+{
+  "name": "If U? - 매일의 질문으로 세상을 알아가기",
+  "short_name": "If U?",
+  "description": "하루의 질문에 투표하고 커뮤니티와 함께 다양한 관점을 나누세요.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b4cf6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

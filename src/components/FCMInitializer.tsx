@@ -14,7 +14,7 @@ export default function FCMInitializer() {
       return;
     }
 
-    // Service Worker 등록
+    // 백그라운드 알림을 수신하는 Service Worker 등록
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/firebase-messaging-sw.js')

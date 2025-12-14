@@ -8,6 +8,19 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "If U? | 매일의 질문으로 세상을 알아가기",
   description: "하루의 질문에 투표하고 커뮤니티와 함께 다양한 관점을 나누세요.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "If U?",
+  },
+  themeColor: "#3b4cf6",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 }
 
 export default function RootLayout({
