@@ -35,7 +35,7 @@ const getPlatform = (): string => {
   }
 
   // iOS 감지 (iPhone, iPad, iPod)
-  if (/iphone|ipad|ipod/.test(userAgent)) {
+  if (/iphone|ipad|ipod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
     return "WEB_IOS";
   }
 
