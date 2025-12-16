@@ -27,8 +27,9 @@ export function useAuth() {
 
       const userData = await getMe(token)
       setUser(userData)
-    } catch (error) {
-      console.error("로그인 실패:", error)
+    } catch (error: any) {
+      const errorMessage = error?.message || "로그인에 실패했습니다"
+      console.error("로그인 실패:", errorMessage, error)
       removeStoredAccessToken()
       setAccessToken(null)
       setUser(null)
@@ -42,8 +43,9 @@ export function useAuth() {
   const logout = useCallback(async () => {
     try {
       await apiLogout()
-    } catch (error) {
-      console.error("로그아웃 API 실패:", error)
+    } catch (error: any) {
+      const errorMessage = error?.message || "로그아웃에 실패했습니다"
+      console.error("로그아웃 API 실패:", errorMessage, error)
     } finally {
       // API 실패 여부와 관계없이 로컬 상태 초기화
       removeStoredAccessToken()
@@ -65,8 +67,9 @@ export function useAuth() {
       removeStoredAccessToken()
       setAccessToken(null)
       setUser(null)
-    } catch (error) {
-      console.error("회원 탈퇴 실패:", error)
+    } catch (error: any) {
+      const errorMessage = error?.message || "회원 탈퇴에 실패했습니다"
+      console.error("회원 탈퇴 실패:", errorMessage, error)
       throw error
     }
   }, [accessToken])
@@ -80,8 +83,9 @@ export function useAuth() {
       setStoredAccessToken(newToken)
       setAccessToken(newToken)
       return newToken
-    } catch (error) {
-      console.error("토큰 갱신 실패:", error)
+    } catch (error: any) {
+      const errorMessage = error?.message || "토큰 갱신에 실패했습니다"
+      console.error("토큰 갱신 실패:", errorMessage, error)
       // 갱신 실패 시 로그아웃 처리
       removeStoredAccessToken()
       setAccessToken(null)
@@ -109,7 +113,8 @@ export function useAuth() {
         const userData = await getMe(storedToken)
         if (isMounted) setUser(userData)
       } catch (error: any) {
-        console.error("인증 상태 확인 실패:", error)
+        const errorMessage = error?.message || "인증 상태 확인에 실패했습니다"
+        console.error("인증 상태 확인 실패:", errorMessage, error)
 
         // 401 에러인 경우에만 토큰 갱신 시도
         if (error?.status === 401) {
@@ -121,8 +126,9 @@ export function useAuth() {
             }
             const userData = await getMe(newToken)
             if (isMounted) setUser(userData)
-          } catch (refreshError) {
-            console.error("토큰 갱신 실패:", refreshError)
+          } catch (refreshError: any) {
+            const refreshErrorMessage = refreshError?.message || "토큰 갱신에 실패했습니다"
+            console.error("토큰 갱신 실패:", refreshErrorMessage, refreshError)
             removeStoredAccessToken()
             if (isMounted) {
               setAccessToken(null)

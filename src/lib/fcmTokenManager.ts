@@ -56,8 +56,9 @@ const isPwaInstalled = (): boolean => {
          console.log("알림 권한이 거부되었습니다");
          return null;
        }
-     } catch (error) {
-       console.error("FCM 토큰 요청 오류:", error);
+     } catch (error: any) {
+       const errorMessage = error?.message || "FCM 토큰 요청 중 오류가 발생했습니다"
+       console.error("FCM 토큰 요청 오류:", errorMessage, error);
        return null;
      }
    };
@@ -93,14 +94,15 @@ const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) 
     });
 
     if (!response.ok) {
-      console.error("FCM 토큰 저장 실패:", response.status);
       const errorData = await response.json().catch(() => ({}));
-      console.error("에러 상세:", errorData);
+      const errorMessage = errorData.message || `HTTP ${response.status} 오류`
+      console.error("FCM 토큰 저장 실패:", errorMessage, errorData);
     } else {
       console.log("FCM 토큰 서버 저장 성공");
     }
-  } catch (error) {
-    console.error("FCM 토큰 서버 저장 오류:", error);
+  } catch (error: any) {
+    const errorMessage = error?.message || "FCM 토큰 서버 저장 중 오류가 발생했습니다"
+    console.error("FCM 토큰 서버 저장 오류:", errorMessage, error);
   }
 };
    
