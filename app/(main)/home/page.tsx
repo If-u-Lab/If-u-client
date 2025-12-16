@@ -3,8 +3,9 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { QuestionCard } from "@/components/question-card"
+import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
-import { EyeIcon, ChatBubbleLeftIcon, HeartIcon, ChatBubbleOvalLeftEllipsisIcon, ExclamationTriangleIcon, UserCircleIcon } from "@heroicons/react/24/solid"
+import { ExclamationTriangleIcon } from "@heroicons/react/24/solid"
 
 export default function HomePage() {
   const router = useRouter()
@@ -26,11 +27,7 @@ export default function HomePage() {
   const question = todayQuestion
 
   if (isLoading && !question) {
-    return (
-      <div className="w-full max-w-2xl mx-auto px-6 pt-8 pb-12 md:px-8 md:pt-10 md:pb-20 text-center py-12">
-        <p className="text-muted-foreground">로딩 중...</p>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   if (!question) {
