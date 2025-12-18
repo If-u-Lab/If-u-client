@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation"
 import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
+import { useAuthContext } from "@/contexts/auth-context"
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid"
 
 export default function HomePage() {
   const router = useRouter()
+  const { isLoading: authLoading } = useAuthContext()
   const {
     todayQuestion,
     fetchTodayQuestion,
@@ -19,10 +21,11 @@ export default function HomePage() {
     isLoading,
   } = useQuestionsContext()
 
-  // 오늘의 질문만 로드
+  // 인증 완료 후 오늘의 질문 로드
   useEffect(() => {
+    if (authLoading) return
     fetchTodayQuestion()
-  }, [fetchTodayQuestion])
+  }, [fetchTodayQuestion, authLoading])
 
   const question = todayQuestion
 

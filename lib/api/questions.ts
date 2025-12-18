@@ -8,7 +8,7 @@ import type {
   QuestionResultResponse,
 } from "@/types/api"
 
-const BASE_PATH = "/v1/questions"
+const BASE_PATH = "/api/v1/questions"
 
 /**
  * 오늘의 질문 조회

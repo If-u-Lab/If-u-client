@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation"
 import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
+import { useAuthContext } from "@/contexts/auth-context"
 import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline"
 
 export default function QuestionsPage() {
   const router = useRouter()
+  const { isLoading: authLoading } = useAuthContext()
   const {
     todayQuestion,
     pastQuestions,
@@ -23,11 +25,12 @@ export default function QuestionsPage() {
     loadMore,
   } = useQuestionsContext()
 
-  // 오늘의 질문 + 질문 목록 로드
+  // 인증 완료 후 질문 로드
   useEffect(() => {
+    if (authLoading) return
     fetchTodayQuestion()
     fetchPastQuestions()
-  }, [fetchTodayQuestion, fetchPastQuestions])
+  }, [fetchTodayQuestion, fetchPastQuestions, authLoading])
 
   // 오늘의 질문을 맨 위에, 나머지는 날짜 최신순 정렬
   const sortedPastQuestions = [...pastQuestions].sort((a, b) => {

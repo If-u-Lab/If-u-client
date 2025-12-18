@@ -78,7 +78,7 @@ const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) 
       return;
     }
 
-    const response = await fetch(`${apiUrl}/v1/notifications/devices`, {
+    const response = await fetch(`${apiUrl}/api/v1/notifications/devices`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

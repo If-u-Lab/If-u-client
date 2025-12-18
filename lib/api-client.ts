@@ -44,6 +44,14 @@ export async function apiFetch<T>(
     "Content-Type": "application/json",
   }
 
+  // 인증 토큰이 있으면 Authorization 헤더 추가
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("access_token")
+    if (token) {
+      defaultHeaders["Authorization"] = `Bearer ${token}`
+    }
+  }
+
   const response = await fetch(url, {
     ...options,
     headers: {
