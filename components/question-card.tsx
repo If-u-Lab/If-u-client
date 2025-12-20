@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 
 interface QuestionCardProps {
   question: {
     id: string
     title: string
+    description?: string
     options: string[]
     totalVotes: number
     votes: number[]
@@ -18,6 +19,10 @@ interface QuestionCardProps {
   selectedOption?: number
   isLoading?: boolean
   isToday?: boolean
+  showDate?: boolean
+  hasVoted?: boolean
+  hideVoteAfterMessage?: boolean
+  showDescription?: boolean
 }
 
 export function QuestionCard({
@@ -27,27 +32,68 @@ export function QuestionCard({
   selectedOption: controlledSelectedOption,
   isLoading = false,
   isToday = false,
+  showDate = false,
+  hasVoted = false,
+  hideVoteAfterMessage = false,
+  showDescription = false,
 }: QuestionCardProps) {
   const [localSelectedOption, setLocalSelectedOption] = useState<number | null>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   // Use controlled prop if provided, otherwise use local state
   const selectedOption = controlledSelectedOption !== undefined ? controlledSelectedOption : localSelectedOption
 
-  const handleVote = (option: number) => {
-    // 같은 선택지 두 번 클릭 방지 (투표 취소 불가)
-    if (!isLoading && question.status !== "CLOSED" && selectedOption !== option) {
+  const handleOptionSelect = (option: number) => {
+    // 선택만 하고 즉시 투표하지 않음
+    if (!isLoading && question.status !== "CLOSED") {
       setLocalSelectedOption(option)
-      onVote(option)
     }
   }
+
+  const handleSubmit = () => {
+    // 제출 버튼 클릭 시 투표 실행
+    if (localSelectedOption !== null && !isLoading && question.status !== "CLOSED") {
+      onVote(localSelectedOption)
+    }
+  }
+
+  // 외부 클릭 시 선택 초기화
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(event.target as Node) && !showResults) {
+        setLocalSelectedOption(null)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showResults])
 
   // 투표 변경 가능 여부: CLOSED가 아니면 변경 가능
   const isVoteChangeable = question.status !== "CLOSED"
 
   return (
-    <div className="w-full bg-white rounded-lg border border-border p-4 md:p-6 space-y-4">
+    <div ref={cardRef} className="w-full bg-white rounded-lg border border-border p-4 md:p-6 space-y-3">
+      {/* 상단: 날짜 + 투표 후 확인 */}
+      {showDate && (
+        <div className="flex items-center justify-between text-sm md:text-base text-muted-foreground">
+          <div className="flex items-center gap-2.5">
+            <span className="font-medium">{question.date}</span>
+            <span>·</span>
+            <span>댓글 {question.commentCount}개</span>
+          </div>
+          {!hasVoted && !hideVoteAfterMessage && (
+            <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-sm font-semibold whitespace-nowrap">
+              투표 후 확인
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-base md:text-lg font-semibold text-foreground line-clamp-3">{question.title}</h3>
+        <h3 className="text-[15px] md:text-lg font-semibold text-foreground line-clamp-3">{question.title}</h3>
         {isToday && (
           <span className="text-xs font-semibold text-primary bg-primary/20 px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0">
             오늘의 질문
@@ -55,16 +101,23 @@ export function QuestionCard({
         )}
       </div>
 
+      {/* Description (상세 페이지용) */}
+      {question.description && showDescription && (
+        <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
+          {question.description}
+        </p>
+      )}
+
       <div className="space-y-3">
         {question.options.map((option, i) => (
           <button
             key={i}
-            onClick={() => handleVote(i)}
-            disabled={isLoading || !isVoteChangeable}
+            onClick={() => handleOptionSelect(i)}
+            disabled={isLoading || !isVoteChangeable || showResults}
             className={`w-full p-4 md:p-5 rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
               selectedOption === i
-                ? "border-primary bg-primary/15 text-primary ring-2 ring-primary/30 ring-offset-2"
-                : !isVoteChangeable
+                ? "border-primary bg-primary/15 text-primary"
+                : !isVoteChangeable || showResults
                   ? "border-border bg-muted text-foreground cursor-not-allowed opacity-60"
                   : "border-border active:border-primary/50 text-foreground active:bg-muted/50"
             } ${isLoading ? "opacity-60 cursor-wait" : ""}`}
@@ -81,13 +134,24 @@ export function QuestionCard({
         ))}
       </div>
 
-      {!showResults && selectedOption === null && (
-        <div className="text-sm md:text-base text-muted-foreground text-center py-2">
-          {question.totalVotes}명이 투표했습니다
+      {/* 투표 전: 제출 버튼 또는 투표 수 표시 */}
+      {!showResults && (
+        <div className="pt-1">
+          {selectedOption !== null ? (
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="w-full py-3 bg-primary/90 text-white rounded-lg font-semibold text-base transition-all active:scale-[0.98] hover:bg-primary disabled:opacity-60 disabled:cursor-wait"
+            >
+              {isLoading ? "제출 중..." : "제출"}
+            </button>
+          ) : (
+            <div className="text-sm md:text-base text-muted-foreground text-center py-2">
+              {question.totalVotes}명이 투표했습니다
+            </div>
+          )}
         </div>
       )}
-
-      {isLoading && <div className="text-sm md:text-base text-muted-foreground text-center py-2">투표 중...</div>}
     </div>
   )
 }

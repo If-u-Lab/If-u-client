@@ -62,6 +62,11 @@ export async function apiFetch<T>(
 
   const json = await response.json()
 
+  // DEBUG: Log API response (개발 환경에서만)
+  if (process.env.NODE_ENV === "development") {
+    console.log("📡 API Response:", endpoint, json)
+  }
+
   if (!response.ok) {
     throw new ApiError(
       json.status || response.status,

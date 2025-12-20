@@ -67,9 +67,7 @@ export default function HomePage() {
   const hasVoted = hasUserVoted(question.id)
 
   const handleQuestionClick = () => {
-    if (hasVoted) {
-      router.push(`/questions/${question.id}`)
-    }
+    router.push(`/questions/${question.id}`)
   }
 
   return (
@@ -77,42 +75,38 @@ export default function HomePage() {
       <h1 className="text-2xl font-bold text-foreground mb-6">오늘의 질문</h1>
 
       {/* 오늘의 질문 */}
-      <div className="space-y-6">
-        <div onClick={handleQuestionClick} className={hasVoted ? "cursor-pointer" : ""}>
+      <div className="space-y-8">
+        <div
+          onDoubleClick={handleQuestionClick}
+          className="rounded-lg bg-card border border-2 border-primary shadow-sm cursor-pointer"
+        >
           <QuestionCard
             question={question}
             onVote={handleVote}
             selectedOption={userVote ?? undefined}
             showResults={hasVoted}
             isLoading={loadingId === question.id}
+            isToday={true}
+            showDate={true}
+            hasVoted={hasVoted}
           />
-          {!hasVoted && (
-            <p className="text-sm text-muted-foreground text-center mt-3 py-2 bg-muted/50 rounded-lg">
-              현황이 궁금하시면 논쟁에 참여하세요
-            </p>
-          )}
-          {hasVoted && (
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              클릭하여 상세 보기
-            </p>
-          )}
         </div>
-      </div>
 
-      {/* 월간 반응 뜨거운 질문 */}
-      <div className="bg-card rounded-lg border border-border p-4 md:p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">🔥 월간 반응 뜨거운 질문</h2>
-        <p className="text-sm text-muted-foreground text-center py-4">
-          준비 중입니다
-        </p>
-      </div>
+        {/* 월간 반응 뜨거운 질문 */}
+        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">🔥 월간 반응 뜨거운 질문</h2>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            준비 중입니다
+          </p>
+        </div>
 
-      {/* 베스트 공감 댓글 */}
-      <div className="bg-card rounded-lg border border-border p-4 md:p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">💬 베스트 공감 댓글</h2>
-        <p className="text-sm text-muted-foreground text-center py-4">
-          준비 중입니다
-        </p>
+        {/* 베스트 공감 댓글 */}
+        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">💬 베스트 공감 댓글</h2>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            준비 중입니다
+          </p>
+        </div>
       </div>
     </div>
   )

@@ -1,23 +1,43 @@
 "use client"
 
-import { use } from "react"
+import { use, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeftIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline"
 import { QuestionCard } from "@/components/question-card"
 import { VotingResults } from "@/components/voting-results"
 import { CommentSection } from "@/components/comment-section"
+import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
+import type { Question } from "@/types/entities"
 
 export default function QuestionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { getQuestionById, getUserVote, hasUserVoted, castVote, loadingId } = useQuestionsContext()
+  const { fetchQuestionById, castVote, loadingId } = useQuestionsContext()
 
   // Unwrap params Promise (Next.js 15+ requirement)
   const { id } = use(params)
 
-  const question = getQuestionById(id)
-  const userVote = getUserVote(id)
-  const hasVoted = hasUserVoted(id)
+  const [question, setQuestion] = useState<Question | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 질문 상세 정보 로드
+  useEffect(() => {
+    const loadQuestion = async () => {
+      setIsLoading(true)
+      const data = await fetchQuestionById(id)
+      setQuestion(data)
+      setIsLoading(false)
+    }
+    loadQuestion()
+  }, [id, fetchQuestionById])
+
+  // API로 불러온 question 객체에서 직접 사용
+  const userVote = question?.userChoice ?? null
+  const hasVoted = question?.hasVoted ?? false
+
+  if (isLoading) {
+    return <LoadingSkeleton />
+  }
 
   if (!question) {
     return (
@@ -61,32 +81,23 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
         </div>
 
         <div className="space-y-8">
+          <QuestionCard
+            question={question}
+            onVote={() => {}}
+            showResults={false}
+            isLoading={false}
+            isToday={question.isToday}
+            showDate={true}
+            hasVoted={false}
+            hideVoteAfterMessage={true}
+            showDescription={true}
+          />
 
-        {/* Limited view for closed questions without vote */}
-        <div className="bg-card rounded-lg border border-border p-6 space-y-5">
-          <h3 className="text-lg md:text-xl font-semibold text-foreground leading-relaxed">{question.text}</h3>
-
-          <div className="space-y-3">
-            {question.options.map((option, i) => (
-              <div
-                key={i}
-                className="w-full p-4 md:p-5 rounded-lg border-2 border-border bg-muted text-foreground cursor-not-allowed opacity-60"
-              >
-                <span className="text-sm md:text-base">{option}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-sm md:text-base text-muted-foreground text-center border-t border-border pt-4">
-            총 {question.totalVotes}명이 투표했습니다
-          </div>
-
-          <div className="text-center py-8 border-t border-border">
+          <div className="text-center py-8 bg-card rounded-lg border border-border">
             <p className="text-base text-muted-foreground leading-relaxed">
               종료된 질문입니다. 투표에 참여하지 않아 결과와 댓글을 볼 수 없습니다.
             </p>
           </div>
-        </div>
         </div>
       </div>
     )
@@ -114,6 +125,11 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
         showResults={hasVoted}
         selectedOption={userVote ?? undefined}
         isLoading={loadingId === question.id}
+        isToday={question.isToday}
+        showDate={true}
+        hasVoted={hasVoted}
+        hideVoteAfterMessage={true}
+        showDescription={true}
       />
 
       {/* Show results and comments only if user has voted */}

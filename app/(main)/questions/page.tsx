@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
@@ -25,6 +25,9 @@ export default function QuestionsPage() {
     loadMore,
   } = useQuestionsContext()
 
+  // 무한스크롤을 위한 observer ref
+  const observerTarget = useRef<HTMLDivElement>(null)
+
   // 인증 완료 후 질문 로드
   useEffect(() => {
     if (authLoading) return
@@ -32,23 +35,45 @@ export default function QuestionsPage() {
     fetchPastQuestions()
   }, [fetchTodayQuestion, fetchPastQuestions, authLoading])
 
-  // 오늘의 질문을 맨 위에, 나머지는 날짜 최신순 정렬
-  const sortedPastQuestions = [...pastQuestions].sort((a, b) => {
+  // 무한스크롤 구현
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries
+      if (target.isIntersecting && hasMore && !isLoading) {
+        loadMore()
+      }
+    },
+    [hasMore, isLoading, loadMore]
+  )
+
+  useEffect(() => {
+    const element = observerTarget.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+    })
+
+    observer.observe(element)
+    return () => observer.unobserve(element)
+  }, [handleObserver])
+
+  // 오늘의 질문 + 과거 질문을 합쳐서 최신순 정렬
+  const allQuestions = todayQuestion
+    ? [todayQuestion, ...pastQuestions]
+    : pastQuestions
+
+  // 날짜 기준 최신순 정렬 (내림차순)
+  const sortedQuestions = [...allQuestions].sort((a, b) => {
     // date 형식: "YY/MM/DD" → 비교를 위해 역순 정렬 (최신이 위로)
     return b.date.localeCompare(a.date)
   })
 
-  const allQuestions = todayQuestion
-    ? [todayQuestion, ...sortedPastQuestions]
-    : sortedPastQuestions
-
   const handleQuestionClick = (questionId: string) => {
-    if (hasUserVoted(questionId)) {
-      router.push(`/questions/${questionId}`)
-    }
+    router.push(`/questions/${questionId}`)
   }
 
-  if (isLoading && allQuestions.length === 0) {
+  if (isLoading && sortedQuestions.length === 0) {
     return <LoadingSkeleton />
   }
 
@@ -57,19 +82,19 @@ export default function QuestionsPage() {
       <h1 className="text-2xl font-bold text-foreground mb-6">질문</h1>
 
       <div className="space-y-5">
-        {pastQuestions.map((question) => {
+        {sortedQuestions.map((question) => {
           const hasVoted = hasUserVoted(question.id)
           const isToday = question.isToday
 
           return (
             <div
               key={question.id}
-              onClick={() => handleQuestionClick(question.id)}
-              className={`rounded-lg bg-card border ${
+              onDoubleClick={() => handleQuestionClick(question.id)}
+              className={`rounded-lg bg-card border cursor-pointer ${
                 isToday
                   ? "border-2 border-primary shadow-sm"
                   : "border-border"
-              } ${hasVoted ? "cursor-pointer" : ""}`}
+              }`}
             >
               <QuestionCard
                 question={question}
@@ -78,27 +103,27 @@ export default function QuestionsPage() {
                 selectedOption={getUserVote(question.id) ?? undefined}
                 isLoading={loadingId === question.id}
                 isToday={isToday}
+                showDate={true}
+                hasVoted={hasVoted}
               />
-              <div
-                className={`text-xs md:text-sm px-5 pb-4 pt-3 flex items-center gap-2.5 border-t border-border/50 ${
-                  hasVoted ? "text-muted-foreground" : "text-muted-foreground/60"
-                }`}
-              >
-                <span>{question.date}</span>
-                <span>·</span>
-                <span>댓글 {question.commentCount}개</span>
-                {!hasVoted && (
-                  <span className="ml-auto px-2.5 py-1 bg-primary/10 text-primary rounded-md text-xs font-semibold">
-                    투표 후 확인
-                  </span>
-                )}
-              </div>
             </div>
           )
         })}
       </div>
 
-      {pastQuestions.length === 0 && (
+      {/* 무한스크롤 트리거 */}
+      {hasMore && (
+        <div ref={observerTarget} className="py-6 text-center">
+          {isLoading && (
+            <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span>로딩 중...</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {sortedQuestions.length === 0 && !isLoading && (
         <div className="text-center py-16 space-y-4">
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -112,17 +137,6 @@ export default function QuestionsPage() {
         </div>
       )}
 
-      {hasMore && (
-        <div className="text-center py-4">
-          <button
-            onClick={loadMore}
-            disabled={isLoading}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-50"
-          >
-            {isLoading ? "로딩 중..." : "더 보기"}
-          </button>
-        </div>
-      )}
     </div>
   )
 }
