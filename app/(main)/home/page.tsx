@@ -77,7 +77,7 @@ export default function HomePage() {
       {/* 오늘의 질문 */}
       <div className="space-y-8">
         <div
-          onDoubleClick={handleQuestionClick}
+          onClick={handleQuestionClick}
           className="rounded-lg bg-card border border-2 border-primary shadow-sm cursor-pointer"
         >
           <QuestionCard
@@ -86,7 +86,6 @@ export default function HomePage() {
             selectedOption={userVote ?? undefined}
             showResults={hasVoted}
             isLoading={loadingId === question.id}
-            isToday={true}
             showDate={true}
             hasVoted={hasVoted}
           />

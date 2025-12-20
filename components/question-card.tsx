@@ -1,24 +1,14 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import type { Question } from "@/types/entities"
 
 interface QuestionCardProps {
-  question: {
-    id: string
-    title: string
-    description?: string
-    options: string[]
-    totalVotes: number
-    votes: number[]
-    commentCount: number
-    date: string
-    status?: "DRAFT" | "PUBLISHED" | "CLOSED"
-  }
+  question: Question
   onVote: (option: number) => void
   showResults?: boolean
   selectedOption?: number
   isLoading?: boolean
-  isToday?: boolean
   showDate?: boolean
   hasVoted?: boolean
   hideVoteAfterMessage?: boolean
@@ -31,7 +21,6 @@ export function QuestionCard({
   showResults = false,
   selectedOption: controlledSelectedOption,
   isLoading = false,
-  isToday = false,
   showDate = false,
   hasVoted = false,
   hideVoteAfterMessage = false,
@@ -98,7 +87,7 @@ export function QuestionCard({
 
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-[15px] md:text-lg font-semibold text-foreground line-clamp-3">{question.title}</h3>
-        {isToday && (
+        {question.isToday && (
           <span className="text-xs font-semibold text-primary bg-primary/20 px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0">
             오늘의 질문
           </span>
@@ -116,7 +105,10 @@ export function QuestionCard({
         {question.options.map((option, i) => (
           <button
             key={i}
-            onClick={() => handleOptionSelect(i)}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleOptionSelect(i)
+            }}
             disabled={isLoading || !isVoteChangeable || showResults}
             className={`w-full p-4 md:p-5 rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
               selectedOption === i
@@ -143,7 +135,10 @@ export function QuestionCard({
         <div className="pt-1">
           {selectedOption !== null ? (
             <button
-              onClick={handleSubmit}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleSubmit()
+              }}
               disabled={isLoading}
               className="w-full py-3 bg-primary/90 text-white rounded-lg font-semibold text-base transition-all active:scale-[0.98] hover:bg-primary disabled:opacity-60 disabled:cursor-wait"
             >

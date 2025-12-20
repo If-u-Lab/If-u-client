@@ -106,10 +106,10 @@ export function useQuestions() {
 
   // 더 불러오기 (무한 스크롤용)
   const loadMore = useCallback(() => {
-    if (nextCursor && !isPastLoading) {
+    if (nextCursor && !isPastLoadingRef.current) {
       fetchPastQuestions(nextCursor)
     }
-  }, [nextCursor, isPastLoading, fetchPastQuestions])
+  }, [nextCursor, fetchPastQuestions])
 
   // 질문 상세 조회
   const fetchQuestionById = useCallback(async (questionId: string) => {
@@ -147,28 +147,13 @@ export function useQuestions() {
     [todayQuestion, pastQuestions]
   )
 
-  // 질문 ID로 조회 
-  const getQuestionById = useCallback(
-    (questionId: string) => {
-      if (todayQuestion?.id === questionId) {
-        return todayQuestion
-      }
-      return pastQuestions.find((q) => q.id === questionId)
-    },
-    [todayQuestion, pastQuestions]
-  )
-
-  // 전체 질문 목록 (레거시 호환)
-  const questions = todayQuestion ? [todayQuestion, ...pastQuestions] : pastQuestions
-
-  // 통합 로딩 상태 (기존 코드 호환)
+  // 통합 로딩 상태
   const isLoading = isTodayLoading || isPastLoading
 
   return {
     // 데이터
     todayQuestion,
     pastQuestions,
-    questions,
 
     // 상태
     isLoading,
@@ -182,14 +167,11 @@ export function useQuestions() {
     fetchPastQuestions,
     fetchQuestionById,
     loadMore,
-
-    // 레거시 호환 (기존 컴포넌트 지원)
-    getTodayQuestion: () => todayQuestion,
-    getPastQuestions: () => pastQuestions,
     hasUserVoted,
     getUserVote,
-    getQuestionById,
-    loadingId: null, // TODO: 투표 API 연동 시 구현
-    castVote: (_questionId: string, _optionIndex: number) => {}, // TODO: 투표 API 연동 시 구현
+
+    // TODO: 투표 API 연동 시 구현
+    loadingId: null,
+    castVote: (_questionId: string, _optionIndex: number) => {},
   }
 }

@@ -78,14 +78,13 @@ export default function QuestionsPage() {
       <div className="space-y-5">
         {allQuestions.map((question) => {
           const hasVoted = hasUserVoted(question.id)
-          const isToday = question.isToday
 
           return (
             <div
               key={question.id}
-              onDoubleClick={() => handleQuestionClick(question.id)}
+              onClick={() => handleQuestionClick(question.id)}
               className={`rounded-lg bg-card border cursor-pointer ${
-                isToday
+                question.isToday
                   ? "border-2 border-primary shadow-sm"
                   : "border-border"
               }`}
@@ -96,7 +95,6 @@ export default function QuestionsPage() {
                 showResults={hasVoted}
                 selectedOption={getUserVote(question.id) ?? undefined}
                 isLoading={loadingId === question.id}
-                isToday={isToday}
                 showDate={true}
                 hasVoted={hasVoted}
               />
