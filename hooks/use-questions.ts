@@ -1,191 +1,177 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { Question } from "@/types/entities"
+import type { QuestionResponse } from "@/types/api"
+import * as questionsApi from "@/lib/api/questions"
 
-// Mock data - in a real app, this would come from an API
-const mockQuestionsData: Question[] = [
-  {
-    id: "1",
-    text: "인공지능이 인간의 일자리를 대체하는 것에 찬성하시나요?",
-    question: "인공지능이 인간의 일자리를 대체하는 것에 찬성하시나요?",
-    category: "기술",
-    options: ["찬성하는 입장", "반대하는 입장"],
-    totalVotes: 147,
-    votes: [87.2, 12.8],
-    commentCount: 89,
-    date: "25/10/04",
-    isToday: true,
-    views: 1523,
-    status: "PUBLISHED",
-    comments: [
-      {
-        author: "김철수",
-        text: "기술 발전은 피할 수 없는 미래입니다. 우리는 적응해야 합니다.",
-        likes: 45,
-        replies: [],
-      },
-      {
-        author: "이영희",
-        text: "일자리를 잃는 사람들에 대한 대책이 필요합니다.",
-        likes: 32,
-        replies: [],
-      },
-    ],
-  },
-  {
-    id: "2",
-    text: "원격 근무가 미래의 표준이 되어야 한다고 생각하시나요?",
-    question: "원격 근무가 미래의 표준이 되어야 한다고 생각하시나요?",
-    category: "업무",
-    options: ["찬성", "반대"],
-    totalVotes: 542,
-    votes: [65.3, 34.7],
-    commentCount: 234,
-    date: "25/10/03",
-    isToday: false,
-    views: 2156,
-    status: "PUBLISHED",
-    comments: [
-      {
-        author: "박지민",
-        text: "원격 근무로 워라밸이 크게 개선되었습니다.",
-        likes: 67,
-        replies: [],
-      },
-    ],
-  },
-  {
-    id: "3",
-    text: "사회 초년생은 큰 회사에 먼저 가야 할까?",
-    question: "사회 초년생은 큰 회사에 먼저 가야 할까?",
-    category: "커리어",
-    options: ["큰 회사 선택", "작은 회사 선택"],
-    totalVotes: 823,
-    votes: [58.2, 41.8],
-    commentCount: 156,
-    date: "25/10/02",
-    isToday: false,
-    views: 1834,
-    status: "CLOSED",
-    comments: [],
-  },
-  {
-    id: "4",
-    text: "대학 등록금 인상에 동의하시나요?",
-    question: "대학 등록금 인상에 동의하시나요?",
-    category: "교육",
-    options: ["동의", "반대"],
-    totalVotes: 1234,
-    votes: [23.5, 76.5],
-    commentCount: 412,
-    date: "25/10/01",
-    isToday: false,
-    views: 3421,
-    status: "CLOSED",
-    comments: [
-      {
-        author: "최민수",
-        text: "교육의 질을 높이려면 어느 정도 인상은 필요합니다.",
-        likes: 28,
-        replies: [],
-      },
-    ],
-  },
-  {
-    id: "5",
-    text: "4주 유급휴가가 표준이 되어야 할까요?",
-    question: "4주 유급휴가가 표준이 되어야 할까요?",
-    category: "정책",
-    options: ["찬성", "반대"],
-    totalVotes: 678,
-    votes: [72.1, 27.9],
-    commentCount: 198,
-    date: "25/09/30",
-    isToday: false,
-    views: 1245,
-    status: "PUBLISHED",
-    comments: [],
-  },
-]
+/**
+ * 백엔드 응답을 프론트엔드 Question 타입으로 변환
+ */
+function toQuestion(response: QuestionResponse, isToday = false): Question {
+  const voteStats = response.voteStats
+  const votes = voteStats
+    ? [voteStats.choice1Percent, voteStats.choice2Percent]
+    : [50, 50]
 
-export function useQuestions() {
-  const [questions, setQuestions] = useState<Question[]>(mockQuestionsData)
-  const [userVotes, setUserVotes] = useState<Map<string, number>>(new Map())
-  const [loadingId, setLoadingId] = useState<string | null>(null)
-
-  const getTodayQuestion = useCallback(() => {
-    return questions.find((q) => q.isToday) || questions[0]
-  }, [questions])
-
-  const getPastQuestions = useCallback(() => {
-    return questions.filter((q) => !q.isToday)
-  }, [questions])
-
-  const castVote = useCallback((questionId: string, optionIndex: number, onComplete?: () => void) => {
-    setLoadingId(questionId)
-
-    // 즉시 투표 상태 업데이트 (낙관적 업데이트)
-    setUserVotes((prev) => new Map(prev).set(questionId, optionIndex))
-
-    // Simulate API call delay
-    setTimeout(() => {
-      setLoadingId(null)
-
-      // Update vote counts (simulated)
-      setQuestions((prev) =>
-        prev.map((q) => {
-          if (q.id === questionId) {
-            const newVotes = [...q.votes]
-            newVotes[optionIndex] += Math.random() * 10
-            const total = newVotes.reduce((a, b) => a + b, 0)
-            newVotes[0] = (newVotes[0] / total) * 100
-            newVotes[1] = (newVotes[1] / total) * 100
-
-            return {
-              ...q,
-              totalVotes: q.totalVotes + 1,
-              votes: newVotes,
-            }
-          }
-          return q
-        }),
-      )
-
-      // 완료 콜백 호출
-      onComplete?.()
-    }, 300)
-  }, [])
-
-  const hasUserVoted = useCallback(
-    (questionId: string) => {
-      return userVotes.has(questionId)
-    },
-    [userVotes],
-  )
-
-  const getUserVote = useCallback(
-    (questionId: string) => {
-      return userVotes.get(questionId) ?? null
-    },
-    [userVotes],
-  )
-
-  const getQuestionById = useCallback(
-    (questionId: string) => {
-      return questions.find((q) => q.id === questionId)
-    },
-    [questions],
-  )
+  // userChoice: 백엔드는 1-based (1=choice1, 2=choice2), 프론트는 0-based로 변환
+  const userChoice = response.userChoice !== null ? response.userChoice - 1 : null
 
   return {
-    questions,
-    getTodayQuestion,
-    getPastQuestions,
-    castVote,
+    id: String(response.questionId),
+    title: response.title,
+    description: response.description,
+    category: response.categoryDisplayName,
+    options: [response.choice1, response.choice2],
+    totalVotes: response.participants,
+    votes,
+    commentCount: 0, // TODO: 댓글 API 연동 시 업데이트
+    date: formatDate(response.publishAt),
+    isToday,
+    status: response.status,
+    hasVoted: response.hasVoted,
+    userChoice,
+  }
+}
+
+/**
+ * 날짜 포맷 변환 (ISO -> YY/MM/DD)
+ */
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate)
+  const yy = String(date.getFullYear()).slice(2)
+  const mm = String(date.getMonth() + 1).padStart(2, "0")
+  const dd = String(date.getDate()).padStart(2, "0")
+  return `${yy}/${mm}/${dd}`
+}
+
+export function useQuestions() {
+  const [todayQuestion, setTodayQuestion] = useState<Question | null>(null)
+  const [pastQuestions, setPastQuestions] = useState<Question[]>([])
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [isTodayLoading, setIsTodayLoading] = useState(false)
+  const [isPastLoading, setIsPastLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // useRef로 로딩 상태 추적 
+  const isTodayLoadingRef = useRef(false)
+  const isPastLoadingRef = useRef(false)
+
+  // 오늘의 질문 조회
+  const fetchTodayQuestion = useCallback(async () => {
+    // 이미 로딩 중이면 중복 호출 방지
+    if (isTodayLoadingRef.current) return
+    isTodayLoadingRef.current = true
+
+    try {
+      setIsTodayLoading(true)
+      setError(null)
+      const response = await questionsApi.getTodayQuestion()
+      setTodayQuestion(toQuestion(response.data, true))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오늘의 질문을 불러오지 못했습니다")
+    } finally {
+      setIsTodayLoading(false)
+      isTodayLoadingRef.current = false
+    }
+  }, [])
+
+  // 지난 질문 목록 조회
+  const fetchPastQuestions = useCallback(async (cursor?: string) => {
+    // 이미 로딩 중이면 중복 호출 방지
+    if (isPastLoadingRef.current) return
+    isPastLoadingRef.current = true
+
+    try {
+      setIsPastLoading(true)
+      setError(null)
+      const response = await questionsApi.getPastQuestions({ cursor, size: 20 })
+      const questions = response.data.items.map((item) => toQuestion(item, false))
+
+      if (cursor) {
+        // 추가 로드 
+        setPastQuestions((prev) => [...prev, ...questions])
+      } else {
+        // 초기 로드
+        setPastQuestions(questions)
+      }
+      setNextCursor(response.data.nextCursor)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "질문 목록을 불러오지 못했습니다")
+    } finally {
+      setIsPastLoading(false)
+      isPastLoadingRef.current = false
+    }
+  }, [])
+
+  // 더 불러오기 (무한 스크롤용)
+  const loadMore = useCallback(() => {
+    if (nextCursor && !isPastLoadingRef.current) {
+      fetchPastQuestions(nextCursor)
+    }
+  }, [nextCursor, fetchPastQuestions])
+
+  // 질문 상세 조회
+  const fetchQuestionById = useCallback(async (questionId: string) => {
+    try {
+      setError(null)
+      const response = await questionsApi.getQuestionById(Number(questionId))
+      return toQuestion(response.data, false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "질문을 불러오지 못했습니다")
+      return null
+    }
+  }, [])
+
+  // 투표 여부 확인 (백엔드 응답의 hasVoted 사용)
+  const hasUserVoted = useCallback(
+    (questionId: string) => {
+      if (todayQuestion?.id === questionId) {
+        return todayQuestion.hasVoted
+      }
+      const question = pastQuestions.find((q) => q.id === questionId)
+      return question?.hasVoted ?? false
+    },
+    [todayQuestion, pastQuestions]
+  )
+
+  // 사용자 투표 조회
+  const getUserVote = useCallback(
+    (questionId: string) => {
+      if (todayQuestion?.id === questionId) {
+        return todayQuestion.userChoice
+      }
+      const question = pastQuestions.find((q) => q.id === questionId)
+      return question?.userChoice ?? null
+    },
+    [todayQuestion, pastQuestions]
+  )
+
+  // 통합 로딩 상태
+  const isLoading = isTodayLoading || isPastLoading
+
+  return {
+    // 데이터
+    todayQuestion,
+    pastQuestions,
+
+    // 상태
+    isLoading,
+    isTodayLoading,
+    isPastLoading,
+    error,
+    hasMore: !!nextCursor,
+
+    // 액션
+    fetchTodayQuestion,
+    fetchPastQuestions,
+    fetchQuestionById,
+    loadMore,
     hasUserVoted,
     getUserVote,
-    getQuestionById,
-    loadingId,
+
+    // TODO: 투표 API 연동 시 구현
+    loadingId: null,
+    castVote: (_questionId: string, _optionIndex: number) => {},
   }
 }

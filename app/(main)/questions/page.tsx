@@ -1,28 +1,74 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
+import { useAuthContext } from "@/contexts/auth-context"
 import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline"
 
 export default function QuestionsPage() {
   const router = useRouter()
-  const { getPastQuestions, castVote, hasUserVoted, getUserVote, loadingId } = useQuestionsContext()
-  const [isLoading, setIsLoading] = useState(true)
+  const { isLoading: authLoading } = useAuthContext()
+  const {
+    todayQuestion,
+    pastQuestions,
+    fetchTodayQuestion,
+    fetchPastQuestions,
+    castVote,
+    hasUserVoted,
+    getUserVote,
+    loadingId,
+    isLoading,
+    hasMore,
+    loadMore,
+  } = useQuestionsContext()
+
+  // 무한스크롤을 위한 observer ref
+  const observerTarget = useRef<HTMLDivElement>(null)
+
+  // 인증 완료 후 질문 로드
+  useEffect(() => {
+    if (authLoading) return
+    fetchTodayQuestion()
+    fetchPastQuestions()
+  }, [fetchTodayQuestion, fetchPastQuestions, authLoading])
+
+  // 무한스크롤 구현
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries
+      if (target.isIntersecting && hasMore && !isLoading) {
+        loadMore()
+      }
+    },
+    [hasMore, isLoading, loadMore]
+  )
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500)
-    return () => clearTimeout(timer)
-  }, [])
+    const element = observerTarget.current
+    if (!element) return
 
-  const pastQuestions = getPastQuestions()
+    const observer = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+    })
+
+    observer.observe(element)
+    return () => observer.unobserve(element)
+  }, [handleObserver])
+
+  // 오늘의 질문 + 과거 질문 (백엔드에서 이미 최신순으로 정렬됨)
+  const allQuestions = todayQuestion
+    ? [todayQuestion, ...pastQuestions]
+    : pastQuestions
 
   const handleQuestionClick = (questionId: string) => {
-    if (hasUserVoted(questionId)) {
-      router.push(`/questions/${questionId}`)
-    }
+    router.push(`/questions/${questionId}`)
+  }
+
+  if (isLoading && allQuestions.length === 0) {
+    return <LoadingSkeleton />
   }
 
   return (
@@ -30,45 +76,46 @@ export default function QuestionsPage() {
       <h1 className="text-2xl font-bold text-foreground mb-6">질문</h1>
 
       <div className="space-y-5">
-        {pastQuestions.map((question) => {
+        {allQuestions.map((question) => {
           const hasVoted = hasUserVoted(question.id)
+
           return (
             <div
               key={question.id}
               onClick={() => handleQuestionClick(question.id)}
-              className={`rounded-lg ${
-                hasVoted
-                  ? "bg-card border-2 border-primary/40 shadow-sm"
-                  : "bg-muted/30 border border-border/50"
+              className={`rounded-lg bg-card border cursor-pointer ${
+                question.isToday
+                  ? "border-2 border-primary shadow-sm"
+                  : "border-border"
               }`}
             >
               <QuestionCard
                 question={question}
                 onVote={(optionIndex) => castVote(question.id, optionIndex)}
-                showResults={true}
+                showResults={hasVoted}
                 selectedOption={getUserVote(question.id) ?? undefined}
                 isLoading={loadingId === question.id}
+                showDate={true}
+                hasVoted={hasVoted}
               />
-              <div
-                className={`text-xs md:text-sm px-5 pb-4 pt-3 flex items-center gap-2.5 border-t border-border/50 ${
-                  hasVoted ? "text-muted-foreground" : "text-muted-foreground/60"
-                }`}
-              >
-                <span>{question.date}</span>
-                <span>·</span>
-                <span>댓글 {question.commentCount}개</span>
-                {!hasVoted && (
-                  <span className="ml-auto px-2.5 py-1 bg-primary/10 text-primary rounded-md text-xs font-semibold">
-                    투표 후 확인
-                  </span>
-                )}
-              </div>
             </div>
           )
         })}
       </div>
 
-      {pastQuestions.length === 0 && (
+      {/* 무한스크롤 트리거 */}
+      {hasMore && (
+        <div ref={observerTarget} className="py-6 text-center">
+          {isLoading && (
+            <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span>로딩 중...</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {allQuestions.length === 0 && !isLoading && (
         <div className="text-center py-16 space-y-4">
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -81,6 +128,7 @@ export default function QuestionsPage() {
           </div>
         </div>
       )}
+
     </div>
   )
 }
