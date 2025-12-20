@@ -23,26 +23,35 @@ const isPwaInstalled = (): boolean => {
          (window.navigator as any).standalone === true;
 };
 
-// 플랫폼 감지 (WEB_ANDROID, WEB_IOS, WEB_DESKTOP)
+// 플랫폼 감지 (ANDROID, IOS, WEB, OTHER)
 const getPlatform = (): string => {
-  if (typeof window === "undefined") return "WEB";
+  // SSR / Node 환경
+  if (typeof window === "undefined") return "OTHER";
 
   const userAgent = window.navigator.userAgent.toLowerCase();
 
-  // Android 감지
+  // Android
   if (/android/.test(userAgent)) {
-    return "WEB_ANDROID";
+    return "ANDROID";
   }
 
-  // iOS 감지 (iPhone, iPad, iPod)
-  if (/iphone|ipad|ipod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
-    return "WEB_IOS";
+  // iOS (iPhone, iPad, iPod, iPadOS)
+  if (
+    /iphone|ipad|ipod/.test(userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  ) {
+    return "IOS";
   }
 
-  // 그 외 (Desktop: Windows, Mac, Linux)
-  return "WEB_DESKTOP";
+  // 브라우저 기반 데스크톱
+  if (/windows|macintosh|linux/.test(userAgent)) {
+    return "WEB";
+  }
+
+  // 그 외 (알 수 없는 환경)
+  return "OTHER";
 };
-   
+
    // FCM 토큰을 받아오는 함수
    export const requestFCMToken = async (accessToken?: string | null) => {
      try {
