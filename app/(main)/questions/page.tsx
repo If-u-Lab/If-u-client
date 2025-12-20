@@ -58,22 +58,16 @@ export default function QuestionsPage() {
     return () => observer.unobserve(element)
   }, [handleObserver])
 
-  // 오늘의 질문 + 과거 질문을 합쳐서 최신순 정렬
+  // 오늘의 질문 + 과거 질문 (백엔드에서 이미 최신순으로 정렬됨)
   const allQuestions = todayQuestion
     ? [todayQuestion, ...pastQuestions]
     : pastQuestions
-
-  // 날짜 기준 최신순 정렬 (내림차순)
-  const sortedQuestions = [...allQuestions].sort((a, b) => {
-    // date 형식: "YY/MM/DD" → 비교를 위해 역순 정렬 (최신이 위로)
-    return b.date.localeCompare(a.date)
-  })
 
   const handleQuestionClick = (questionId: string) => {
     router.push(`/questions/${questionId}`)
   }
 
-  if (isLoading && sortedQuestions.length === 0) {
+  if (isLoading && allQuestions.length === 0) {
     return <LoadingSkeleton />
   }
 
@@ -82,7 +76,7 @@ export default function QuestionsPage() {
       <h1 className="text-2xl font-bold text-foreground mb-6">질문</h1>
 
       <div className="space-y-5">
-        {sortedQuestions.map((question) => {
+        {allQuestions.map((question) => {
           const hasVoted = hasUserVoted(question.id)
           const isToday = question.isToday
 
@@ -123,7 +117,7 @@ export default function QuestionsPage() {
         </div>
       )}
 
-      {sortedQuestions.length === 0 && !isLoading && (
+      {allQuestions.length === 0 && !isLoading && (
         <div className="text-center py-16 space-y-4">
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
