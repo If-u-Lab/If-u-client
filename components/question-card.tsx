@@ -85,8 +85,12 @@ export function QuestionCard({
             <span>댓글 {question.commentCount}개</span>
           </div>
           {!hasVoted && !hideVoteAfterMessage && (
-            <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-sm font-semibold whitespace-nowrap">
-              투표 후 확인
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap ${
+              question.status === "CLOSED"
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary/10 text-primary"
+            }`}>
+              {question.status === "CLOSED" ? "투표 종료" : "투표 후 확인"}
             </span>
           )}
         </div>
