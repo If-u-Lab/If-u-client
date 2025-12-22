@@ -156,10 +156,10 @@ const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) 
            data: { ...data, redirectPath }, // 클릭 시 사용할 데이터 포함
          });
 
-         // 알림 클릭 시 페이지 이동
+         // 알림 클릭 시 페이지 이동 (CustomEvent로 React Router에 위임)
          notification.onclick = () => {
            window.focus();
-           window.location.href = redirectPath;
+           window.dispatchEvent(new CustomEvent('fcm-navigate', { detail: redirectPath }));
          };
        }
      });

@@ -114,13 +114,13 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 이미 열린 창이 있으면 focus 후 이동
+      // 이미 열린 창이 있으면 focus 후 CustomEvent로 React Router에 위임
       for (const client of clientList) {
         if ('focus' in client) {
           return client.focus().then((c) => c.navigate(redirectPath));
         }
       }
-      // 열린 창이 없으면 새 창 열기
+      // 열린 창이 없으면 새 창 열기 (초기 진입이므로 window.location 사용)
       if (clients.openWindow) {
         return clients.openWindow(redirectPath);
       }
