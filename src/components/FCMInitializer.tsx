@@ -1,11 +1,50 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { requestFCMToken, onForegroundMessage } from '@/src/lib/fcmTokenManager';
 import { useAuthContext } from '@/contexts/auth-context';
 
 export default function FCMInitializer() {
   const { accessToken, isAuthenticated } = useAuthContext();
+  const router = useRouter();
+
+  // 포그라운드 알림 클릭 시 라우팅 처리
+  useEffect(() => {
+    const handleFCMNavigate = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      const redirectPath = customEvent.detail;
+      console.log('FCM 알림 클릭 - 페이지 이동:', redirectPath);
+      router.push(redirectPath);
+    };
+
+    window.addEventListener('fcm-navigate', handleFCMNavigate);
+
+    return () => {
+      window.removeEventListener('fcm-navigate', handleFCMNavigate);
+    };
+  }, [router]);
+
+  // 백그라운드 알림 클릭 시 라우팅 처리 (Service Worker postMessage)
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'FCM_NAVIGATE') {
+        const redirectPath = event.data.redirectPath;
+        console.log('Service Worker 알림 클릭 - 페이지 이동:', redirectPath);
+        router.push(redirectPath);
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+    }
+
+    return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
+  }, [router]);
 
   useEffect(() => {
     // 로그인하지 않았으면 FCM 초기화하지 않음

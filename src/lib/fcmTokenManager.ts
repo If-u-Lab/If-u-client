@@ -143,14 +143,24 @@ const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) 
      const unsubscribe = onMessage(messagingInstance, (payload) => {
        console.log("포그라운드 메시지 수신:", payload);
 
-       const notificationTitle = payload.notification?.title || "새 알림";
-       const notificationBody = payload.notification?.body || "";
+       // data 필드 우선 사용 (서버가 data 필드만 보내도록 권장)
+       const data = payload.data || {};
+       const notificationTitle = data.title || payload.notification?.title || "새로운 질문";
+       const notificationBody = data.body || payload.notification?.body || "오늘의 질문이 등록되었습니다";
+       const redirectPath = data.redirectPath || "/home"; // 백엔드가 보내는 리다이렉트 경로
 
        if (Notification.permission === "granted") {
-         new Notification(notificationTitle, {
+         const notification = new Notification(notificationTitle, {
            body: notificationBody,
-           icon: "/icon.png",
+           icon: "/icon-192.png", 
+           data: { ...data, redirectPath }, // 클릭 시 사용할 데이터 포함
          });
+
+         // 알림 클릭 시 페이지 이동 (CustomEvent로 React Router에 위임)
+         notification.onclick = () => {
+           window.focus();
+           window.dispatchEvent(new CustomEvent('fcm-navigate', { detail: redirectPath }));
+         };
        }
      });
 
