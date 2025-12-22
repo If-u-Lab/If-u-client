@@ -86,11 +86,12 @@ messaging.onBackgroundMessage((payload) => {
 
   // data 필드 우선 사용 (notification 필드는 자동 알림 방지)
   const data = payload.data || {};
-  const notificationTitle = data.title || payload.notification?.title || '알림 title';
+  const notificationTitle = data.title || payload.notification?.title || '새로운 질문';
+  const notificationBody = data.body || payload.notification?.body || '오늘의 질문이 등록되었습니다';
   const redirectPath = data.redirectPath || '/home'; // 백엔드가 보내는 리다이렉트 경로
 
   const notificationOptions = {
-    body: data.body || payload.notification?.body || '새로운 질문이 등록되었습니다.',
+    body: notificationBody,
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     tag: 'if-u-notification',

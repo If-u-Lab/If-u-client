@@ -145,8 +145,8 @@ const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) 
 
        // data 필드 우선 사용 (서버가 data 필드만 보내도록 권장)
        const data = payload.data || {};
-       const notificationTitle = data.title || payload.notification?.title || "알림 title";
-       const notificationBody = data.body || payload.notification?.body || "알림 body";
+       const notificationTitle = data.title || payload.notification?.title || "새로운 질문";
+       const notificationBody = data.body || payload.notification?.body || "오늘의 질문이 등록되었습니다";
        const redirectPath = data.redirectPath || "/home"; // 백엔드가 보내는 리다이렉트 경로
 
        if (Notification.permission === "granted") {
