@@ -117,9 +117,7 @@ self.addEventListener('notificationclick', (event) => {
       // 이미 열린 창이 있으면 focus 후 이동
       for (const client of clientList) {
         if ('focus' in client) {
-          client.focus();
-          client.navigate(redirectPath);
-          return;
+          return client.focus().then((c) => c.navigate(redirectPath));
         }
       }
       // 열린 창이 없으면 새 창 열기
