@@ -84,14 +84,47 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('백그라운드 메시지 수신:', payload);
 
-  const notificationTitle = payload.notification?.title || '새로운 질문';
+  // data 필드 우선 사용 (notification 필드는 자동 알림 방지)
+  const data = payload.data || {};
+  const notificationTitle = data.title || payload.notification?.title || '알림 title';
+  const redirectPath = data.redirectPath || '/home'; // 백엔드가 보내는 리다이렉트 경로
+
   const notificationOptions = {
-    body: payload.notification?.body || '새로운 질문이 등록되었습니다.',
+    body: data.body || payload.notification?.body || '새로운 질문이 등록되었습니다.',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     tag: 'if-u-notification',
     requireInteraction: false,
+    data: { ...data, redirectPath }, // 클릭 시 사용할 데이터 저장
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // notification 필드가 있으면 Firebase가 이미 자동 알림 생성했으므로 중복 방지
+  if (!payload.notification) {
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  }
+});
+
+// 알림 클릭 시 페이지 이동
+self.addEventListener('notificationclick', (event) => {
+  console.log('알림 클릭:', event);
+  event.notification.close();
+
+  const redirectPath = event.notification.data?.redirectPath || '/home';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // 이미 열린 창이 있으면 focus 후 이동
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          client.navigate(redirectPath);
+          return;
+        }
+      }
+      // 열린 창이 없으면 새 창 열기
+      if (clients.openWindow) {
+        return clients.openWindow(redirectPath);
+      }
+    })
+  );
 });
