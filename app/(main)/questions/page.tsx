@@ -83,11 +83,13 @@ export default function QuestionsPage() {
             <div
               key={question.id}
               onClick={() => handleQuestionClick(question.id)}
-              className={`rounded-lg bg-card border cursor-pointer ${
-                question.isToday
-                  ? "border-2 border-primary shadow-sm"
-                  : "border-border"
-              }`}
+              className={`rounded-lg bg-card cursor-pointer transition-all duration-200
+                hover:shadow-md hover:-translate-y-[1px]
+                ${
+                  question.isToday
+                    ? "border-2 border-primary hover:border-primary"
+                    : "border border-border hover:border-foreground/60"
+                }`}
             >
               <QuestionCard
                 question={question}

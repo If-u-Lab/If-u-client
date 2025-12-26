@@ -18,10 +18,16 @@ interface ApiResponse<T> {
 export interface User {
   id: number
   nickname: string
-  email?: string // 백엔드에서 추가 예정
+  email?: string 
   providerId: string
   role: "USER" | "ADMIN"
   isDeleted: boolean
+  notificationEnabled: boolean 
+  stats?: {
+    totalVotes: number
+    totalComments: number
+    participationRate: number
+  }
 }
 
 // 토큰 갱신 응답 타입

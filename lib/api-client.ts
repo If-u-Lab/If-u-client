@@ -112,6 +112,19 @@ export function apiPut<T>(
 }
 
 /**
+ * PATCH 요청 헬퍼
+ */
+export function apiPatch<T>(
+  endpoint: string,
+  body?: unknown
+): Promise<ApiResponse<T>> {
+  return apiFetch<T>(endpoint, {
+    method: "PATCH",
+    body: body ? JSON.stringify(body) : undefined,
+  })
+}
+
+/**
  * DELETE 요청 헬퍼
  */
 export function apiDelete<T>(endpoint: string): Promise<ApiResponse<T>> {

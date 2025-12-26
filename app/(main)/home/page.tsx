@@ -6,6 +6,7 @@ import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
 import { useAuthContext } from "@/contexts/auth-context"
+import { ERROR_MESSAGES } from "@/hooks/use-questions"
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid"
 
 export default function HomePage() {
@@ -19,6 +20,7 @@ export default function HomePage() {
     getUserVote,
     loadingId,
     isLoading,
+    error,
   } = useQuestionsContext()
 
   // 인증 완료 후 오늘의 질문 로드
@@ -44,15 +46,21 @@ export default function HomePage() {
           </div>
           <div className="space-y-3">
             <div className="space-y-1">
-              <p className="text-base font-medium text-foreground">오늘의 질문을 불러올 수 없습니다</p>
-              <p className="text-sm text-muted-foreground">잠시 후 다시 시도해주세요</p>
+              <p className="text-base font-medium text-foreground">
+                {error || "오늘의 질문을 불러올 수 없습니다"}
+              </p>
+              {error !== ERROR_MESSAGES.NO_QUESTION_TODAY && (
+                <p className="text-sm text-muted-foreground">잠시 후 다시 시도해주세요</p>
+              )}
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium active:scale-95 transition-transform"
-            >
-              새로고침
-            </button>
+            {error !== ERROR_MESSAGES.NO_QUESTION_TODAY && (
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium active:scale-95 transition-transform"
+              >
+                새로고침
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -53,32 +53,41 @@ export default function FCMInitializer() {
       return;
     }
 
-    // 백그라운드 알림을 수신하는 Service Worker 등록
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
-        .then((registration) => {
-          console.log('Service Worker 등록 성공:', registration);
-        })
-        .catch((error: any) => {
-          const errorMessage = error?.message || "Service Worker 등록에 실패했습니다"
-          console.error('Service Worker 등록 실패:', errorMessage, error);
-        });
-    }
-
     let unsubscribe: (() => void) | null = null;
 
-    // FCM 초기화
+    // FCM 초기화 (Service Worker 등록 후 토큰 발급)
     const initFCM = async () => {
-      console.log('FCM 초기화 시작');
+      try {
+        console.log('FCM 초기화 시작');
 
-      const token = await requestFCMToken(accessToken);
+        // 1. Service Worker 먼저 등록하고 완료 대기
+        if ('serviceWorker' in navigator) {
+          console.log('Service Worker 등록 시도');
+          const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          console.log('Service Worker 등록 성공:', registration);
 
-      if (token) {
-        console.log('FCM 초기화 완료');
-        unsubscribe = await onForegroundMessage();
-      } else {
-        console.log('FCM 초기화 실패 (권한 거부 또는 미지원 브라우저)');
+          // Service Worker가 활성화될 때까지 대기
+          if (registration.installing) {
+            console.log('Service Worker 설치 중...');
+          } else if (registration.waiting) {
+            console.log('Service Worker 대기 중...');
+          } else if (registration.active) {
+            console.log('Service Worker 활성화됨');
+          }
+        }
+
+        // 2. Service Worker 준비 완료 후 FCM 토큰 요청
+        const token = await requestFCMToken(accessToken);
+
+        if (token) {
+          console.log('FCM 초기화 완료');
+          unsubscribe = await onForegroundMessage();
+        } else {
+          console.log('FCM 초기화 실패 (권한 거부 또는 미지원 브라우저)');
+        }
+      } catch (error: any) {
+        const errorMessage = error?.message || "FCM 초기화 중 오류 발생"
+        console.error('FCM 초기화 실패:', errorMessage, error);
       }
     };
 
