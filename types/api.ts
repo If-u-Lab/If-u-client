@@ -88,3 +88,50 @@ export interface QuestionResultResponse {
   voteStats: VoteStats | null
   updatedAt: string
 }
+
+/**
+ * 투표 응답
+ */
+export interface VoteResponse {
+  questionId: number
+  userChoice: number
+  isChanged: boolean
+  participants: number
+  voteStats: VoteStats
+}
+
+/**
+ * 참여율 Top 5 질문 조회 응답
+ */
+export type TopQuestionsResponse = QuestionResponse[]
+
+/**
+ * 사용자 역할
+ */
+export type UserRole = "USER" | "ADMIN"
+
+/**
+ * 사용자 통계
+ */
+export interface UserStats {
+  totalVotes: number
+  totalComments: number
+  participationRate: number
+  majorityRate: number
+  currentStreak: number
+  weeklyActivity: boolean[]
+}
+
+/**
+ * 내 정보 조회 응답
+ */
+export interface UserResponse {
+  id: number
+  nickname: string
+  email: string
+  providerId: string
+  role: UserRole
+  isDeleted: boolean
+  notificationEnabled: boolean
+  stats: UserStats
+}

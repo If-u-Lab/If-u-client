@@ -1,11 +1,13 @@
 // Question API 서비스 함수
 
-import { apiGet } from "@/lib/api-client"
+import { apiGet, apiPut } from "@/lib/api-client"
 import type {
   TodayQuestionResponse,
   PastQuestionsResponse,
   QuestionDetailResponse,
   QuestionResultResponse,
+  VoteResponse,
+  TopQuestionsResponse,
 } from "@/types/api"
 
 const BASE_PATH = "/api/v1/questions"
@@ -46,4 +48,20 @@ export async function getQuestionById(id: number) {
  */
 export async function getQuestionResults(id: number) {
   return apiGet<QuestionResultResponse>(`${BASE_PATH}/${id}/results`)
+}
+
+/**
+ * 투표하기 (이미 투표한 경우 선택지 변경)
+ * @param id 질문 ID
+ * @param choice 선택지 (1 또는 2)
+ */
+export async function vote(id: number, choice: number) {
+  return apiPut<VoteResponse>(`${BASE_PATH}/${id}/votes`, { choice })
+}
+
+/**
+ * 참여율 Top 5 질문 조회
+ */
+export async function getTopQuestions() {
+  return apiGet<TopQuestionsResponse>(`${BASE_PATH}/top`)
 }
