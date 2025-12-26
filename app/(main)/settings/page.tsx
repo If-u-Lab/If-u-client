@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { updateNotificationSettings } from "@/lib/notification-api"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
   const { logout, deleteAccount, isAuthenticated, user } = useAuthContext()
@@ -35,7 +36,7 @@ export default function SettingsPage() {
       console.error("알림 설정 업데이트 실패:", errorMessage, error)
       // 실패 시 원래 상태로 복구
       setNotificationsEnabled(!enabled)
-      alert(`알림 설정 업데이트에 실패했습니다: ${errorMessage}`)
+      toast.error(errorMessage)
     } finally {
       setIsUpdating(false)
     }
@@ -48,7 +49,7 @@ export default function SettingsPage() {
     } catch (error: any) {
       const errorMessage = error?.message || "로그아웃에 실패했습니다"
       console.error("로그아웃 실패:", errorMessage, error)
-      alert(`로그아웃에 실패했습니다: ${errorMessage}`)
+      toast.error(errorMessage)
     }
   }
 
@@ -60,7 +61,7 @@ export default function SettingsPage() {
     } catch (error: any) {
       const errorMessage = error?.message || "회원 탈퇴에 실패했습니다"
       console.error("회원 탈퇴 실패:", errorMessage, error)
-      alert(`회원 탈퇴에 실패했습니다: ${errorMessage}`)
+      toast.error(errorMessage)
     } finally {
       setIsDeleting(false)
       setShowDeleteModal(false)
