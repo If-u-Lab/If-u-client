@@ -16,11 +16,17 @@ interface TendencyInfo {
   icon: typeof UserGroupIcon
 }
 
+// 성향 분류 기준값
+const TENDENCY_THRESHOLD = {
+  MAJORITY: 71,  // 71% 이상: 대세파
+  BALANCED: 31,  // 31% 이상: 균형파, 미만: 소신파
+}
+
 // majorityRate에 따른 성향 결정
 function getTendency(majorityRate: number): TendencyInfo {
-  if (majorityRate >= 71) {
+  if (majorityRate >= TENDENCY_THRESHOLD.MAJORITY) {
     return { type: "majority", name: "대중과 통하는 공감자", icon: UserGroupIcon }
-  } else if (majorityRate >= 31) {
+  } else if (majorityRate >= TENDENCY_THRESHOLD.BALANCED) {
     return { type: "balanced", name: "균형 잡힌 중재자", icon: ScaleIcon }
   } else {
     return { type: "independent", name: "흔들리지 않는 개척자", icon: RocketLaunchIcon }
