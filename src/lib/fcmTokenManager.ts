@@ -1,5 +1,6 @@
 import { messaging } from "./settingFCM";
 import { getToken, onMessage } from "firebase/messaging";
+import { updateNotificationSettings } from "@/lib/notification-api";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
@@ -55,17 +56,39 @@ const getPlatform = (): string => {
    // FCM 토큰을 받아오는 함수
    export const requestFCMToken = async (accessToken?: string | null) => {
      try {
-       // 브라우저 알림 권한 요청
-       console.log("알림 권한 요청 중");
-       const permission = await Notification.requestPermission();
+       // 브라우저 알림 지원 여부 확인
+       if (!('Notification' in window)) {
+         console.log("브라우저가 알림을 지원하지 않습니다");
+         return null;
+       }
+
+       // 현재 권한 상태 확인
+       let permission = Notification.permission;
+       console.log("현재 알림 권한 상태:", permission);
+
+       // 권한이 아직 결정되지 않았으면 요청
+       if (permission === "default") {
+         console.log("알림 권한 요청 중...");
+         permission = await Notification.requestPermission();
+         console.log("사용자 선택:", permission);
+       }
 
        if (permission === "granted") {
-         console.log("알림 권한 허용됨");
+         console.log("알림 권한 허용됨 - FCM 토큰 발급 시작");
+
+         // 알림 권한 허용 시 서버에 notificationEnabled: true 업데이트
+         try {
+           await updateNotificationSettings(true);
+           console.log("서버 알림 설정 업데이트 완료 (enabled: true)");
+         } catch (error) {
+           console.error("서버 알림 설정 업데이트 실패:", error);
+           // 실패해도 FCM 토큰 발급은 계속 진행
+         }
 
          // messaging 함수 실행해서 객체 가져오기
          const messagingInstance = await messaging();
          if (!messagingInstance) {
-           console.log("브라우저가 알림을 지원하지 않습니다");
+           console.log("Firebase Messaging 초기화 실패");
            return null;
          }
          // FCM 토큰 발급
@@ -74,15 +97,27 @@ const getPlatform = (): string => {
          });
 
          if (token) {
-           console.log("FCM 토큰:", token);
+           console.log("FCM 토큰 발급 성공:", token);
            await saveTokenToServer(token, accessToken);
            return token;
          } else {
            console.log("토큰 발급 실패");
            return null;
          }
+       } else if (permission === "denied") {
+         console.log("알림 권한이 거부되었습니다. 브라우저 설정에서 변경 가능합니다.");
+
+         // 알림 권한 거부 시 서버에 notificationEnabled: false 업데이트
+         try {
+           await updateNotificationSettings(false);
+           console.log("서버 알림 설정 업데이트 완료 (enabled: false)");
+         } catch (error) {
+           console.error("서버 알림 설정 업데이트 실패:", error);
+         }
+
+         return null;
        } else {
-         console.log("알림 권한이 거부되었습니다");
+         console.log("알림 권한이 결정되지 않았습니다");
          return null;
        }
      } catch (error: any) {

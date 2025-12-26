@@ -2,15 +2,43 @@
 
 import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon } from "@heroicons/react/24/outline"
 import { Switch } from "@/components/ui/switch"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
+import { updateNotificationSettings } from "@/lib/notification-api"
 
 export default function SettingsPage() {
   const { logout, deleteAccount, isAuthenticated, user } = useAuthContext()
   const router = useRouter()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  // 페이지 로드 시 user.notificationEnabled 값으로 초기화
+  useEffect(() => {
+    if (user?.notificationEnabled !== undefined) {
+      setNotificationsEnabled(user.notificationEnabled)
+    }
+  }, [user?.notificationEnabled])
+
+  // 알림 설정 토글 변경 핸들러
+  const handleNotificationToggle = async (enabled: boolean) => {
+    setIsUpdating(true)
+    setNotificationsEnabled(enabled) // 낙관적 UI 업데이트
+
+    try {
+      await updateNotificationSettings(enabled)
+      console.log("알림 설정 업데이트 성공:", enabled)
+    } catch (error: any) {
+      const errorMessage = error?.message || "알림 설정 업데이트에 실패했습니다"
+      console.error("알림 설정 업데이트 실패:", errorMessage, error)
+      // 실패 시 원래 상태로 복구
+      setNotificationsEnabled(!enabled)
+      alert(`알림 설정 업데이트에 실패했습니다: ${errorMessage}`)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   const handleLogout = async () => {
     try {
@@ -79,12 +107,13 @@ export default function SettingsPage() {
 
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div className="space-y-1 flex-1 pr-4">
-            <p className="font-medium text-sm md:text-base text-foreground">오늘의 질문 알림</p>
+            <p className="font-medium text-sm md:text-base text-foreground">오늘의 질문</p>
             <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">매일 새 질문이 올라오면 알려드립니다</p>
           </div>
           <Switch
             checked={notificationsEnabled}
-            onCheckedChange={setNotificationsEnabled}
+            onCheckedChange={handleNotificationToggle}
+            disabled={isUpdating}
           />
         </div>
 
