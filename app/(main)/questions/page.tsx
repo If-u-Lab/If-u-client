@@ -4,9 +4,10 @@ import { useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
+import { PullToRefresh } from "@/components/pull-to-refresh"
 import { useQuestionsContext } from "@/contexts/questions-context"
 import { useAuthContext } from "@/contexts/auth-context"
-import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline"
+import { ChatBubbleOvalLeftEllipsisIcon } from "@heroicons/react/24/outline"
 
 export default function QuestionsPage() {
   const router = useRouter()
@@ -23,6 +24,8 @@ export default function QuestionsPage() {
     isLoading,
     hasMore,
     loadMore,
+    refreshQuestion,
+    refreshingId,
   } = useQuestionsContext()
 
   // 무한스크롤을 위한 observer ref
@@ -67,14 +70,17 @@ export default function QuestionsPage() {
     router.push(`/questions/${questionId}`)
   }
 
+  const handlePullRefresh = useCallback(async () => {
+    await Promise.all([fetchTodayQuestion(), fetchPastQuestions()])
+  }, [fetchTodayQuestion, fetchPastQuestions])
+
   if (isLoading && allQuestions.length === 0) {
     return <LoadingSkeleton />
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
-      <h1 className="text-2xl font-bold text-foreground mb-6">질문</h1>
-
+    <PullToRefresh onRefresh={handlePullRefresh}>
+      <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
       <div className="space-y-5">
         {allQuestions.map((question) => {
           const hasVoted = hasUserVoted(question.id)
@@ -82,23 +88,25 @@ export default function QuestionsPage() {
           return (
             <div
               key={question.id}
-              onClick={() => handleQuestionClick(question.id)}
-              className={`rounded-lg bg-card cursor-pointer transition-all duration-200
-                hover:shadow-md hover:-translate-y-[1px]
+              className={`rounded-lg bg-card transition-all duration-200
                 ${
                   question.isToday
-                    ? "border-2 border-primary hover:border-primary"
-                    : "border border-border hover:border-foreground/60"
+                    ? "border-2 border-primary/60"
+                    : "border border-border"
                 }`}
             >
               <QuestionCard
                 question={question}
                 onVote={(optionIndex) => castVote(question.id, optionIndex)}
+                onRefresh={() => refreshQuestion(question.id)}
+                onDetailClick={() => handleQuestionClick(question.id)}
                 showResults={hasVoted}
                 selectedOption={getUserVote(question.id) ?? undefined}
                 isLoading={loadingId === question.id}
+                isRefreshing={refreshingId === question.id}
                 showDate={true}
                 hasVoted={hasVoted}
+                showDescription={true}
               />
             </div>
           )
@@ -110,7 +118,7 @@ export default function QuestionsPage() {
         <div ref={observerTarget} className="py-6 text-center">
           {isLoading && (
             <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-primary/60 border-t-transparent rounded-full animate-spin" />
               <span>로딩 중...</span>
             </div>
           )}
@@ -118,19 +126,18 @@ export default function QuestionsPage() {
       )}
 
       {allQuestions.length === 0 && !isLoading && (
-        <div className="text-center py-16 space-y-4">
-          <div className="flex justify-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <QuestionMarkCircleIcon className="w-8 h-8 text-primary/60" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-base font-medium text-foreground">아직 질문이 없습니다</p>
-            <p className="text-sm text-muted-foreground">매일 새로운 질문이 올라옵니다</p>
-          </div>
+        <div className="flex flex-col items-center pt-65">
+          <ChatBubbleOvalLeftEllipsisIcon className="w-16 h-16 text-primary/60 mb-4" />
+          <p className="text-[15px] text-muted-foreground mb-1">
+            질문이 곧 도착해요
+          </p>
+          <p className="text-[13px] text-muted-foreground/90">
+            첫 번째 질문을 준비하고 있어요
+          </p>
         </div>
       )}
 
     </div>
+    </PullToRefresh>
   )
 }
