@@ -53,6 +53,17 @@ const getPlatform = (): string => {
   return "OTHER";
 };
 
+// 서버 알림 설정 업데이트 헬퍼 함수
+const tryUpdateNotificationSettings = async (enabled: boolean): Promise<void> => {
+  try {
+    await updateNotificationSettings(enabled);
+    console.log(`서버 알림 설정 업데이트 완료 (enabled: ${enabled})`);
+  } catch (error) {
+    console.error("서버 알림 설정 업데이트 실패:", error);
+    // 실패해도 토큰 발급/거부 처리는 계속 진행
+  }
+};
+
    // FCM 토큰을 받아오는 함수
    export const requestFCMToken = async (accessToken?: string | null) => {
      try {
@@ -77,13 +88,7 @@ const getPlatform = (): string => {
          console.log("알림 권한 허용됨 - FCM 토큰 발급 시작");
 
          // 알림 권한 허용 시 서버에 notificationEnabled: true 업데이트
-         try {
-           await updateNotificationSettings(true);
-           console.log("서버 알림 설정 업데이트 완료 (enabled: true)");
-         } catch (error) {
-           console.error("서버 알림 설정 업데이트 실패:", error);
-           // 실패해도 FCM 토큰 발급은 계속 진행
-         }
+         await tryUpdateNotificationSettings(true);
 
          // messaging 함수 실행해서 객체 가져오기
          const messagingInstance = await messaging();
@@ -108,12 +113,7 @@ const getPlatform = (): string => {
          console.log("알림 권한이 거부되었습니다. 브라우저 설정에서 변경 가능합니다.");
 
          // 알림 권한 거부 시 서버에 notificationEnabled: false 업데이트
-         try {
-           await updateNotificationSettings(false);
-           console.log("서버 알림 설정 업데이트 완료 (enabled: false)");
-         } catch (error) {
-           console.error("서버 알림 설정 업데이트 실패:", error);
-         }
+         await tryUpdateNotificationSettings(false);
 
          return null;
        } else {

@@ -6,6 +6,7 @@ import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
 import { useAuthContext } from "@/contexts/auth-context"
+import { ERROR_MESSAGES } from "@/hooks/use-questions"
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid"
 
 export default function HomePage() {
@@ -48,11 +49,11 @@ export default function HomePage() {
               <p className="text-base font-medium text-foreground">
                 {error || "오늘의 질문을 불러올 수 없습니다"}
               </p>
-              {error !== "오늘의 질문이 아직 없습니다!" && (
+              {error !== ERROR_MESSAGES.NO_QUESTION_TODAY && (
                 <p className="text-sm text-muted-foreground">잠시 후 다시 시도해주세요</p>
               )}
             </div>
-            {error !== "오늘의 질문이 아직 없습니다!" && (
+            {error !== ERROR_MESSAGES.NO_QUESTION_TODAY && (
               <button
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium active:scale-95 transition-transform"

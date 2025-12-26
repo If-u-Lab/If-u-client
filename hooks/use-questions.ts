@@ -6,6 +6,14 @@ import type { QuestionResponse } from "@/types/api"
 import * as questionsApi from "@/lib/api/questions"
 
 /**
+ * 에러 메시지 상수
+ * 컴포넌트에서 에러 타입을 구분할 때 사용
+ */
+export const ERROR_MESSAGES = {
+  NO_QUESTION_TODAY: "오늘의 질문이 아직 없습니다!",
+} as const
+
+/**
  * 백엔드 응답을 프론트엔드 Question 타입으로 변환
  */
 function toQuestion(response: QuestionResponse, isToday = false): Question {
@@ -71,7 +79,7 @@ export function useQuestions() {
     } catch (err: any) {
       // 404 에러 (오늘의 질문이 없음)
       if (err.status === 404) {
-        setError("오늘의 질문이 아직 없습니다!")
+        setError(ERROR_MESSAGES.NO_QUESTION_TODAY)
       } else {
         setError(err instanceof Error ? err.message : "오늘의 질문을 불러오지 못했습니다")
       }
