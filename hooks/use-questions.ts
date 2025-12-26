@@ -16,7 +16,7 @@ export const ERROR_MESSAGES = {
 /**
  * 백엔드 응답을 프론트엔드 Question 타입으로 변환
  */
-function toQuestion(response: QuestionResponse, isToday = false): Question {
+export function toQuestion(response: QuestionResponse, isToday = false): Question {
   const voteStats = response.voteStats
   const votes = voteStats
     ? [voteStats.choice1Percent, voteStats.choice2Percent]
@@ -43,14 +43,23 @@ function toQuestion(response: QuestionResponse, isToday = false): Question {
 }
 
 /**
- * 날짜 포맷 변환 (ISO -> YY/MM/DD)
+ * 날짜 포맷 변환
+ * - 올해 → "M월 D일 (요일)"
+ * - 작년 이전 → "YYYY년 M월 D일 (요일)"
  */
 function formatDate(isoDate: string): string {
   const date = new Date(isoDate)
-  const yy = String(date.getFullYear()).slice(2)
-  const mm = String(date.getMonth() + 1).padStart(2, "0")
-  const dd = String(date.getDate()).padStart(2, "0")
-  return `${yy}/${mm}/${dd}`
+  const now = new Date()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const dayNames = ["일", "월", "화", "수", "목", "금", "토"]
+  const dayOfWeek = dayNames[date.getDay()]
+
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${month}월 ${day}일 (${dayOfWeek})`
+  }
+
+  return `${date.getFullYear()}년 ${month}월 ${day}일 (${dayOfWeek})`
 }
 
 export function useQuestions() {
@@ -60,8 +69,9 @@ export function useQuestions() {
   const [isTodayLoading, setIsTodayLoading] = useState(false)
   const [isPastLoading, setIsPastLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
-  // useRef로 로딩 상태 추적 
+  // useRef로 로딩 상태 추적
   const isTodayLoadingRef = useRef(false)
   const isPastLoadingRef = useRef(false)
 
@@ -160,6 +170,72 @@ export function useQuestions() {
     [todayQuestion, pastQuestions]
   )
 
+  // 투표하기
+  const castVote = useCallback(
+    async (questionId: string, optionIndex: number) => {
+      // optionIndex는 0-based, API는 1-based
+      const choice = optionIndex + 1
+
+      setLoadingId(questionId)
+      try {
+        const response = await questionsApi.vote(Number(questionId), choice)
+        const { userChoice, participants, voteStats } = response.data
+
+        // 질문 상태 업데이트 헬퍼
+        const updateQuestion = (q: Question): Question => ({
+          ...q,
+          hasVoted: true,
+          userChoice: userChoice - 1, // API는 1-based, 프론트는 0-based
+          totalVotes: participants,
+          votes: [voteStats.choice1Percent, voteStats.choice2Percent],
+        })
+
+        // 오늘의 질문 업데이트
+        if (todayQuestion?.id === questionId) {
+          setTodayQuestion(updateQuestion(todayQuestion))
+        }
+
+        // 과거 질문 업데이트
+        setPastQuestions((prev) =>
+          prev.map((q) => (q.id === questionId ? updateQuestion(q) : q))
+        )
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "투표에 실패했습니다")
+      } finally {
+        setLoadingId(null)
+      }
+    },
+    [todayQuestion]
+  )
+
+  // 질문 새로고침 (참여 수, 댓글 수 업데이트)
+  const [refreshingId, setRefreshingId] = useState<string | null>(null)
+
+  const refreshQuestion = useCallback(
+    async (questionId: string) => {
+      setRefreshingId(questionId)
+      try {
+        const response = await questionsApi.getQuestionById(Number(questionId))
+        const updatedQuestion = toQuestion(response.data, todayQuestion?.id === questionId)
+
+        // 오늘의 질문 업데이트
+        if (todayQuestion?.id === questionId) {
+          setTodayQuestion(updatedQuestion)
+        }
+
+        // 과거 질문 업데이트
+        setPastQuestions((prev) =>
+          prev.map((q) => (q.id === questionId ? updatedQuestion : q))
+        )
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "새로고침에 실패했습니다")
+      } finally {
+        setRefreshingId(null)
+      }
+    },
+    [todayQuestion]
+  )
+
   // 통합 로딩 상태
   const isLoading = isTodayLoading || isPastLoading
 
@@ -174,6 +250,8 @@ export function useQuestions() {
     isPastLoading,
     error,
     hasMore: !!nextCursor,
+    loadingId,
+    refreshingId,
 
     // 액션
     fetchTodayQuestion,
@@ -182,9 +260,7 @@ export function useQuestions() {
     loadMore,
     hasUserVoted,
     getUserVote,
-
-    // TODO: 투표 API 연동 시 구현
-    loadingId: null,
-    castVote: (_questionId: string, _optionIndex: number) => {},
+    castVote,
+    refreshQuestion,
   }
 }
