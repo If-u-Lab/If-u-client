@@ -80,7 +80,7 @@ export default function HomePage() {
                 질문을 불러오지 못했어요
               </p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => fetchTodayQuestion()}
                 className="h-12 w-48 bg-primary/60 text-white rounded-xl font-semibold text-[15px] flex items-center justify-center active:scale-95 transition-transform"
               >
                 다시 시도
