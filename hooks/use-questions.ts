@@ -68,8 +68,13 @@ export function useQuestions() {
       setError(null)
       const response = await questionsApi.getTodayQuestion()
       setTodayQuestion(toQuestion(response.data, true))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "오늘의 질문을 불러오지 못했습니다")
+    } catch (err: any) {
+      // 404 에러 (오늘의 질문이 없음)
+      if (err.status === 404) {
+        setError("오늘의 질문이 아직 없습니다!")
+      } else {
+        setError(err instanceof Error ? err.message : "오늘의 질문을 불러오지 못했습니다")
+      }
     } finally {
       setIsTodayLoading(false)
       isTodayLoadingRef.current = false

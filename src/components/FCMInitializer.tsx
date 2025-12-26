@@ -62,7 +62,7 @@ export default function FCMInitializer() {
 
         // 1. Service Worker 먼저 등록하고 완료 대기
         if ('serviceWorker' in navigator) {
-          console.log('Service Worker 등록 시도...');
+          console.log('Service Worker 등록 시도');
           const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
           console.log('Service Worker 등록 성공:', registration);
 

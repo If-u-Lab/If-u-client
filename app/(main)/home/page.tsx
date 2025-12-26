@@ -19,6 +19,7 @@ export default function HomePage() {
     getUserVote,
     loadingId,
     isLoading,
+    error,
   } = useQuestionsContext()
 
   // 인증 완료 후 오늘의 질문 로드
@@ -44,15 +45,21 @@ export default function HomePage() {
           </div>
           <div className="space-y-3">
             <div className="space-y-1">
-              <p className="text-base font-medium text-foreground">오늘의 질문을 불러올 수 없습니다</p>
-              <p className="text-sm text-muted-foreground">잠시 후 다시 시도해주세요</p>
+              <p className="text-base font-medium text-foreground">
+                {error || "오늘의 질문을 불러올 수 없습니다"}
+              </p>
+              {error !== "오늘의 질문이 아직 없습니다!" && (
+                <p className="text-sm text-muted-foreground">잠시 후 다시 시도해주세요</p>
+              )}
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium active:scale-95 transition-transform"
-            >
-              새로고침
-            </button>
+            {error !== "오늘의 질문이 아직 없습니다!" && (
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium active:scale-95 transition-transform"
+              >
+                새로고침
+              </button>
+            )}
           </div>
         </div>
       </div>
