@@ -1,14 +1,42 @@
 "use client"
 
 import { Cog6ToothIcon } from "@heroicons/react/24/outline"
-import { UserCircleIcon } from "@heroicons/react/24/solid"
+import { UserGroupIcon, ScaleIcon, RocketLaunchIcon } from "@heroicons/react/24/solid"
 import { useUserProfile } from "@/hooks/use-user-profile"
 import { ActivityChart } from "@/components/activity-chart"
+import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useRouter } from "next/navigation"
 
+// 투표 성향 타입 정의
+type TendencyType = "majority" | "balanced" | "independent"
+
+interface TendencyInfo {
+  type: TendencyType
+  name: string
+  icon: typeof UserGroupIcon
+}
+
+// majorityRate에 따른 성향 결정
+function getTendency(majorityRate: number): TendencyInfo {
+  if (majorityRate >= 71) {
+    return { type: "majority", name: "대중과 통하는 공감자", icon: UserGroupIcon }
+  } else if (majorityRate >= 31) {
+    return { type: "balanced", name: "균형 잡힌 중재자", icon: ScaleIcon }
+  } else {
+    return { type: "independent", name: "흔들리지 않는 개척자", icon: RocketLaunchIcon }
+  }
+}
+
 export default function ProfilePage() {
-  const { profile, getDaysSinceJoin } = useUserProfile()
+  const { profile, isLoading } = useUserProfile()
   const router = useRouter()
+
+  if (isLoading) {
+    return <LoadingSkeleton />
+  }
+
+  const tendency = getTendency(profile.majorityRate)
+  const TendencyIcon = tendency.icon
 
   const stats = [
     {
@@ -30,57 +58,62 @@ export default function ProfilePage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
-      {/* Header with settings */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">프로필</h1>
+      {/* 설정 버튼 */}
+      <div className="flex justify-end mb-2">
         <button
           onClick={() => router.push('/settings')}
-          className="p-2.5 active:bg-muted rounded-lg transition-colors"
+          className="p-2 active:bg-muted rounded-lg transition-colors"
           aria-label="설정"
         >
-          <Cog6ToothIcon className="w-6 h-6 text-foreground" />
+          <Cog6ToothIcon className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
 
-      <div className="space-y-8">
-      {/* Profile Header */}
-      <div className="bg-card rounded-lg border border-border p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 flex-shrink-0">
-            <UserCircleIcon className="w-full h-full text-primary/60" />
-          </div>
-          <div className="flex-1 space-y-2">
-            <h2 className="text-xl md:text-2xl font-semibold text-foreground">{profile.username}</h2>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="px-2.5 py-1 bg-primary/10 text-primary rounded-md font-medium">
-                {getDaysSinceJoin()}일째 참여 중
-              </span>
-            </div>
-          </div>
+      {/* 프로필 영역 */}
+      <div className="text-center mb-8">
+        {/* 성향 아바타 */}
+        <div className="w-28 h-28 mx-auto mb-4 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
+          <TendencyIcon className="w-14 h-14 text-primary/70" />
         </div>
+        <h2 className="text-2xl font-bold text-foreground mb-2">{profile.username}</h2>
+        <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+          {profile.currentStreak}일 연속 참여 중
+        </span>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-8">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-card rounded-lg border border-border p-4 md:p-5 space-y-2">
-            <p className="text-xs md:text-sm text-muted-foreground leading-tight">{stat.label}</p>
-            <div className="flex items-baseline gap-1">
-              <p className="text-2xl md:text-3xl font-bold text-foreground">{stat.value}</p>
-              <span className="text-xs md:text-sm text-muted-foreground">{stat.description}</span>
-            </div>
+          <div key={index} className="text-center py-4">
+            <p className="text-2xl md:text-3xl font-bold text-foreground">
+              {stat.value}<span className="text-base font-normal text-muted-foreground">{stat.description}</span>
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-card rounded-lg border border-border p-6 space-y-5">
-        <div className="space-y-1.5">
-          <h3 className="text-lg md:text-xl font-semibold text-foreground">최근 활동</h3>
-          <p className="text-sm text-muted-foreground">지난 7일간의 참여 현황</p>
+      <div className="space-y-4">
+        {/* 나의 투표 성향 */}
+        <div className="bg-card rounded-xl border border-border p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-foreground">나의 투표 성향</h3>
+            <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">{tendency.name}</span>
+          </div>
+          <div className="flex items-end gap-3 mb-4">
+            <p className="text-4xl font-bold text-foreground">{profile.majorityRate}<span className="text-lg font-medium">%</span></p>
+            <p className="text-sm text-muted-foreground pb-1">다수의 선택과 일치</p>
+          </div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary/60 rounded-full" style={{ width: `${profile.majorityRate}%` }} />
+          </div>
         </div>
-        <ActivityChart data={profile.recentActivity} maxValue={10} />
-      </div>
+
+        {/* 최근 활동 */}
+        <div className="bg-card rounded-xl border border-border p-5">
+          <h3 className="font-semibold text-foreground mb-4">최근 7일</h3>
+          <ActivityChart data={profile.recentActivity} />
+        </div>
       </div>
     </div>
   )

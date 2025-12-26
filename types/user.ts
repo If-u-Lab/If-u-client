@@ -12,7 +12,8 @@ export interface UserProfile {
   totalVotes: number
   totalComments: number
   engagementRate: number
-  joinDate: string
+  majorityRate: number
+  currentStreak: number
   recentActivity: ActivityItem[]
   bestComments: Comment[]
 }
@@ -22,5 +23,6 @@ export interface UserProfile {
  */
 export interface ActivityItem {
   date: string
-  count: number
+  participated: boolean
+  isToday?: boolean
 }

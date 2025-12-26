@@ -1,27 +1,34 @@
 "use client"
 
+import { FireIcon as FireIconSolid } from "@heroicons/react/24/solid"
+import { FireIcon as FireIconOutline } from "@heroicons/react/24/outline"
+
 interface ActivityChartProps {
-  data: Array<{ date: string; count: number }>
-  maxValue?: number
+  data: Array<{ date: string; participated: boolean; isToday?: boolean }>
 }
 
-export function ActivityChart({ data, maxValue = 5 }: ActivityChartProps) {
-  const max = Math.max(maxValue, ...data.map((d) => d.count))
-
+export function ActivityChart({ data }: ActivityChartProps) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-end justify-between gap-1 h-24">
-        {data.map((item, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-2">
-            <div
-              className="w-full bg-gradient-to-t from-primary to-primary/50 rounded-t transition-all hover:from-primary/90"
-              style={{ height: `${(item.count / max) * 100}%`, minHeight: item.count > 0 ? "4px" : "0px" }}
-              title={`${item.date}: ${item.count}회`}
-            />
-            <span className="text-xs text-muted-foreground">{item.date}</span>
+    <div className="flex items-center justify-between">
+      {data.map((item, i) => (
+        <div key={i} className="flex flex-col items-center gap-1.5">
+          <div
+            className="w-10 h-10 flex items-center justify-center"
+            title={`${item.date}: ${item.isToday ? "오늘" : ""} ${item.participated ? "참여" : "미참여"}`}
+          >
+            {item.participated ? (
+              <FireIconSolid className="w-7 h-7 text-orange-500" />
+            ) : item.isToday ? (
+              <div className="w-8 h-8 rounded-full border-2 border-dashed border-primary/40 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">?</span>
+              </div>
+            ) : (
+              <FireIconOutline className="w-7 h-7 text-muted-foreground/30" />
+            )}
           </div>
-        ))}
-      </div>
+          <span className="text-xs text-muted-foreground">{item.date}</span>
+        </div>
+      ))}
     </div>
   )
 }
