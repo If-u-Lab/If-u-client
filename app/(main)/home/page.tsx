@@ -70,7 +70,7 @@ export default function HomePage() {
       <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
         <h1 className="text-2xl font-bold text-foreground mb-6">오늘의 질문</h1>
 
-        <div className="flex flex-col items-center pt-65">
+        <div className="flex flex-col items-center pt-16">
           {isError ? (
             <>
               <p className="text-4xl font-bold text-muted-foreground/40 mb-3">
