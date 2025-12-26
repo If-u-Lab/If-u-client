@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon } from "@heroicons/react/24/outline"
+import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline"
 import { Switch } from "@/components/ui/switch"
 import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
@@ -10,7 +10,8 @@ import { updateNotificationSettings } from "@/lib/notification-api"
 export default function SettingsPage() {
   const { logout, deleteAccount, isAuthenticated, user } = useAuthContext()
   const router = useRouter()
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -52,11 +53,7 @@ export default function SettingsPage() {
   }
 
   const handleDeleteAccount = async () => {
-    if (!showDeleteConfirm) {
-      setShowDeleteConfirm(true)
-      return
-    }
-
+    setIsDeleting(true)
     try {
       await deleteAccount()
       router.push("/")
@@ -64,13 +61,16 @@ export default function SettingsPage() {
       const errorMessage = error?.message || "회원 탈퇴에 실패했습니다"
       console.error("회원 탈퇴 실패:", errorMessage, error)
       alert(`회원 탈퇴에 실패했습니다: ${errorMessage}`)
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
   return (
     <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
-      {/* Header with back button */}
-      <div className="flex items-center gap-3 mb-6">
+      {/* Back button */}
+      <div className="mb-4">
         <button
           onClick={() => router.back()}
           className="p-2.5 active:bg-muted rounded-lg transition-colors"
@@ -78,7 +78,6 @@ export default function SettingsPage() {
         >
           <ArrowLeftIcon className="w-6 h-6 text-foreground" />
         </button>
-        <h1 className="text-2xl font-bold text-foreground">설정</h1>
       </div>
 
       <div className="space-y-8">
@@ -139,25 +138,12 @@ export default function SettingsPage() {
           </button>
 
           <button
-            onClick={handleDeleteAccount}
-            className={`w-full text-left p-4 rounded-lg transition-colors flex items-center gap-3 ${
-              showDeleteConfirm
-                ? "bg-red-600 text-white"
-                : "active:bg-destructive/10 text-destructive"
-            }`}
+            onClick={() => setShowDeleteModal(true)}
+            className="w-full text-left p-4 rounded-lg transition-colors flex items-center gap-3 active:bg-destructive/10 text-destructive"
           >
             <TrashIcon className="w-5 h-5 md:w-6 md:h-6" />
-            <span className="text-sm md:text-base font-medium">{showDeleteConfirm ? "탈퇴하시겠습니까?" : "회원 탈퇴"}</span>
+            <span className="text-sm md:text-base font-medium">회원 탈퇴</span>
           </button>
-
-          {showDeleteConfirm && (
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="w-full text-left p-4 active:bg-muted rounded-lg transition-colors text-sm md:text-base text-muted-foreground"
-            >
-              취소
-            </button>
-          )}
         </div>
       )}
 
@@ -167,6 +153,50 @@ export default function SettingsPage() {
         </div>
       )}
       </div>
+
+      {/* 회원탈퇴 확인 모달 */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* 배경 오버레이 */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => !isDeleting && setShowDeleteModal(false)}
+          />
+
+          {/* 모달 */}
+          <div className="relative bg-card rounded-2xl border border-border p-6 mx-5 max-w-sm w-full shadow-xl">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <ArrowRightOnRectangleIcon className="w-7 h-7 text-primary" />
+              </div>
+
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                잠깐, 정말 떠나시나요?
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                지금까지의 투표 기록과 댓글이 모두 사라져요
+              </p>
+
+              <div className="flex flex-col gap-2 w-full">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform disabled:opacity-50"
+                >
+                  계속 함께하기
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="w-full py-3 px-4 bg-muted text-muted-foreground rounded-xl font-medium text-[15px] active:scale-95 transition-transform disabled:opacity-50"
+                >
+                  {isDeleting ? "탈퇴 중..." : "그래도 탈퇴할게요"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
