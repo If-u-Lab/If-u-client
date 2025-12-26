@@ -70,14 +70,13 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     return (
       <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
         {/* Back button */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="mb-4">
           <button
             onClick={() => router.back()}
             className="p-2.5 active:bg-muted rounded-lg transition-colors"
           >
             <ArrowLeftIcon className="w-6 h-6 text-foreground" />
           </button>
-          <h1 className="text-2xl font-bold text-foreground">질문 상세</h1>
         </div>
 
         <div className="space-y-8">
@@ -86,16 +85,18 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
             onVote={() => {}}
             showResults={false}
             isLoading={false}
-            isToday={question.isToday}
             showDate={true}
             hasVoted={false}
             hideVoteAfterMessage={true}
             showDescription={true}
           />
 
-          <div className="text-center py-8 bg-card rounded-lg border border-border">
-            <p className="text-base text-muted-foreground leading-relaxed">
-              종료된 질문입니다. 투표에 참여하지 않아 결과와 댓글을 볼 수 없습니다.
+          <div className="text-center py-8 bg-card rounded-lg border border-border space-y-2">
+            <p className="text-base font-medium text-foreground">
+              종료된 질문입니다.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              투표에 참여하지 않아 결과와 댓글을 볼 수 없습니다.
             </p>
           </div>
         </div>
@@ -106,14 +107,13 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   return (
     <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
       {/* Back button */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="mb-4">
         <button
           onClick={() => router.back()}
           className="p-2.5 active:bg-muted rounded-lg transition-colors"
         >
           <ArrowLeftIcon className="w-6 h-6 text-foreground" />
         </button>
-        <h1 className="text-2xl font-bold text-foreground">질문 상세</h1>
       </div>
 
       <div className="space-y-8">
@@ -125,7 +125,6 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
         showResults={hasVoted}
         selectedOption={userVote ?? undefined}
         isLoading={loadingId === question.id}
-        isToday={question.isToday}
         showDate={true}
         hasVoted={hasVoted}
         hideVoteAfterMessage={true}
