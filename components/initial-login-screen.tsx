@@ -50,7 +50,7 @@ export function InitialLoginScreen({ onStartOnboarding }: InitialLoginScreenProp
           </Button>
         </div>
 
-        <p className="text-xs text-white/50 px-6 leading-relaxed">
+        <p className="text-xs text-white/90 px-6 leading-relaxed">
           서비스 이용약관 및 개인정보 처리방침에 동의합니다
         </p>
       </div>

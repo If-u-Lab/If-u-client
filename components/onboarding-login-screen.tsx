@@ -64,7 +64,7 @@ export function OnboardingLoginScreen() {
           </button>
         </div>
 
-        <p className="text-xs text-white/50 px-4">
+        <p className="text-xs text-white/90 px-4">
           로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의하게 됩니다
         </p>
       </div>
