@@ -77,8 +77,11 @@ export function QuestionCard({
   // 투표 변경 가능 여부: CLOSED가 아니면 변경 가능
   const isVoteChangeable = question.status !== "CLOSED"
 
+  // 참여하지 않은 종료된 질문은 블러 처리
+  const isClosedWithoutVote = question.status === "CLOSED" && !hasVoted
+
   return (
-    <div ref={cardRef} className="w-full bg-white rounded-lg border border-border p-4 md:p-6 space-y-3">
+    <div ref={cardRef} className="w-full bg-white rounded-lg border border-border p-4 md:p-6 space-y-3 relative overflow-hidden">
       {/* 상단: 날짜 + 상태 뱃지 + 상세보기 */}
       {showDate && (
         <div className="flex items-center justify-between text-sm md:text-base text-muted-foreground">
@@ -96,7 +99,7 @@ export function QuestionCard({
               )
             )}
           </div>
-          {onDetailClick && (
+          {onDetailClick && !isClosedWithoutVote && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -121,33 +124,52 @@ export function QuestionCard({
         )}
       </div>
 
-      <div className="space-y-3">
-        {question.options.map((option, i) => (
+      <div className="relative">
+        {/* 옵션 버튼들 */}
+        <div className={`space-y-3 ${isClosedWithoutVote ? "blur-sm pointer-events-none" : ""}`}>
+          {question.options.map((option, i) => (
+            <button
+              key={i}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOptionSelect(i)
+              }}
+              disabled={isLoading || !isVoteChangeable}
+              className={`w-full p-4 md:p-5 rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
+                selectedOption === i
+                  ? "border-primary/60 bg-primary/10 text-primary"
+                  : !isVoteChangeable
+                    ? "border-border bg-muted text-foreground cursor-not-allowed opacity-60"
+                    : "border-border active:border-primary/60 text-foreground active:bg-primary/5"
+              } ${isLoading ? "opacity-60 cursor-wait" : ""}`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="truncate leading-relaxed">{option}</span>
+                {showResults && (
+                  <span className="text-sm md:text-base font-bold text-muted-foreground flex-shrink-0 ml-3">
+                    {question.votes[i].toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* 참여하지 않은 종료된 질문 오버레이 */}
+        {isClosedWithoutVote && (
           <button
-            key={i}
             onClick={(e) => {
               e.stopPropagation()
-              handleOptionSelect(i)
+              onDetailClick?.()
             }}
-            disabled={isLoading || !isVoteChangeable}
-            className={`w-full p-4 md:p-5 rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
-              selectedOption === i
-                ? "border-primary/60 bg-primary/10 text-primary"
-                : !isVoteChangeable
-                  ? "border-border bg-muted text-foreground cursor-not-allowed opacity-60"
-                  : "border-border active:border-primary/60 text-foreground active:bg-primary/5"
-            } ${isLoading ? "opacity-60 cursor-wait" : ""}`}
+            className="absolute inset-0 flex items-center justify-center cursor-pointer"
           >
-            <div className="flex items-center justify-between">
-              <span className="truncate leading-relaxed">{option}</span>
-              {showResults && (
-                <span className="text-sm md:text-base font-bold text-muted-foreground flex-shrink-0 ml-3">
-                  {question.votes[i].toFixed(1)}%
-                </span>
-              )}
-            </div>
+            <p className="text-sm md:text-base text-muted-foreground text-center leading-relaxed">
+              종료된 질문입니다.<br />
+              투표에 참여하지 않아 결과를 볼 수 없습니다.
+            </p>
           </button>
-        ))}
+        )}
       </div>
 
       {/* 제출 버튼 또는 투표 수 표시 */}
