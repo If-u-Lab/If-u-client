@@ -4,7 +4,6 @@ import { use, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeftIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline"
 import { QuestionCard } from "@/components/question-card"
-import { VotingResults } from "@/components/voting-results"
 import { CommentSection } from "@/components/comment-section"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useQuestionsContext } from "@/contexts/questions-context"
@@ -106,38 +105,81 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
-      {/* Back button */}
-      <div className="mb-4">
+      {/* Header */}
+      <div className="relative flex items-center justify-center mb-6">
         <button
           onClick={() => router.back()}
-          className="p-2.5 active:bg-muted rounded-lg transition-colors"
+          className="absolute left-0 p-2.5 active:bg-muted rounded-lg transition-colors"
         >
           <ArrowLeftIcon className="w-6 h-6 text-foreground" />
         </button>
+        <span className="text-lg font-medium text-muted-foreground">{question.date}</span>
       </div>
 
       <div className="space-y-8">
+        {/* Title & Description */}
+        <div className="space-y-3">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+            {question.title}
+          </h1>
+          {question.description && (
+            <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+              {question.description}
+            </p>
+          )}
+        </div>
 
-      {/* Question Card */}
-      <QuestionCard
-        question={question}
-        onVote={(optionIndex) => castVote(question.id, optionIndex)}
-        showResults={hasVoted}
-        selectedOption={userVote ?? undefined}
-        isLoading={loadingId === question.id}
-        showDate={true}
-        hasVoted={hasVoted}
-        hideVoteAfterMessage={true}
-        showDescription={true}
-      />
+        {/* VS Vote Options */}
+        <div className="relative">
+          <div className="space-y-3">
+            {question.options.map((option, i) => {
+              const isSelected = userVote === i
 
-      {/* Show results and comments only if user has voted */}
-      {hasVoted && (
-        <>
-          <VotingResults question={question} />
+              return (
+                <button
+                  key={i}
+                  onClick={() => !hasVoted && question.status !== "CLOSED" && castVote(question.id, i)}
+                  disabled={loadingId === question.id || question.status === "CLOSED"}
+                  className={`w-full p-5 md:p-6 rounded-xl border-2 transition-all font-medium text-base md:text-lg relative overflow-hidden ${
+                    question.status === "CLOSED"
+                      ? "border-border bg-muted text-foreground cursor-not-allowed opacity-60"
+                      : hasVoted
+                        ? "border-primary/30 text-foreground"
+                        : "border-border text-foreground active:border-primary/60 active:bg-primary/5"
+                  } ${loadingId === question.id ? "opacity-60 cursor-wait" : ""}`}
+                >
+                  {/* 배경 채우기 - 비율만큼 */}
+                  {hasVoted && (
+                    <div className="absolute top-0 left-0 bottom-0 bg-primary/15 transition-all duration-500 rounded-l-lg"
+                      style={{ width: `${question.votes[i]}%` }}
+                    />
+                  )}
+                  <div className="relative flex items-center justify-between">
+                    <span className="leading-relaxed">{option}</span>
+                    {hasVoted && (
+                      <span className="text-lg font-bold text-foreground">
+                        {question.votes[i].toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+        </div>
+
+        {/* Participation info */}
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span>{question.totalVotes.toLocaleString()}명 참여</span>
+          <span>·</span>
+          <span>댓글 {question.commentCount}개</span>
+        </div>
+
+        {/* Show comments only if user has voted */}
+        {hasVoted && (
           <CommentSection questionId={question.id} commentCount={question.commentCount} />
-        </>
-      )}
+        )}
       </div>
     </div>
   )
