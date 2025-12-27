@@ -1,11 +1,10 @@
 import { messaging } from "./settingFCM";
 import { getToken, onMessage } from "firebase/messaging";
-import { updateNotificationSettings } from "@/lib/notification-api";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
 // 디바이스 ID 생성/관리 (localStorage에 저장)
-const getOrCreateDeviceId = (): string => {
+export const getOrCreateDeviceId = (): string => {
   if (typeof window === "undefined") return "";
 
   let deviceId = localStorage.getItem("deviceId");
@@ -53,80 +52,62 @@ const getPlatform = (): string => {
   return "OTHER";
 };
 
-// 서버 알림 설정 업데이트 헬퍼 함수
-const tryUpdateNotificationSettings = async (enabled: boolean): Promise<void> => {
+// FCM 토큰을 받아오는 함수
+export const requestFCMToken = async (accessToken?: string | null) => {
   try {
-    await updateNotificationSettings(enabled);
-    console.log(`서버 알림 설정 업데이트 완료 (enabled: ${enabled})`);
-  } catch (error) {
-    console.error("서버 알림 설정 업데이트 실패:", error);
-    // 실패해도 토큰 발급/거부 처리는 계속 진행
+    // 브라우저 알림 지원 여부 확인
+    if (!('Notification' in window)) {
+      console.log("브라우저가 알림을 지원하지 않습니다");
+      return null;
+    }
+
+    // 현재 권한 상태 확인
+    let permission = Notification.permission;
+    console.log("현재 알림 권한 상태:", permission);
+
+    // 권한이 아직 결정되지 않았으면 요청
+    if (permission === "default") {
+      console.log("알림 권한 요청 중...");
+      permission = await Notification.requestPermission();
+      console.log("사용자 선택:", permission);
+    }
+
+    if (permission === "granted") {
+      console.log("알림 권한 허용됨 - FCM 토큰 발급 시작");
+
+      // messaging 함수 실행해서 객체 가져오기
+      const messagingInstance = await messaging();
+      if (!messagingInstance) {
+        console.log("Firebase Messaging 초기화 실패");
+        return null;
+      }
+      // FCM 토큰 발급
+      const token = await getToken(messagingInstance, {
+        vapidKey: VAPID_KEY,
+      });
+
+      if (token) {
+        console.log("FCM 토큰 발급 성공:", token);
+        await saveTokenToServer(token, accessToken);
+        return token;
+      } else {
+        console.log("토큰 발급 실패");
+        return null;
+      }
+    } else if (permission === "denied") {
+      console.log("알림 권한이 거부되었습니다. 브라우저 설정에서 변경 가능합니다.");
+      return null;
+    } else {
+      console.log("알림 권한이 결정되지 않았습니다");
+      return null;
+    }
+  } catch (error: any) {
+    const errorMessage = error?.message || "FCM 토큰 요청 중 오류가 발생했습니다"
+    console.error("FCM 토큰 요청 오류:", errorMessage, error);
+    return null;
   }
 };
 
-   // FCM 토큰을 받아오는 함수
-   export const requestFCMToken = async (accessToken?: string | null) => {
-     try {
-       // 브라우저 알림 지원 여부 확인
-       if (!('Notification' in window)) {
-         console.log("브라우저가 알림을 지원하지 않습니다");
-         return null;
-       }
-
-       // 현재 권한 상태 확인
-       let permission = Notification.permission;
-       console.log("현재 알림 권한 상태:", permission);
-
-       // 권한이 아직 결정되지 않았으면 요청
-       if (permission === "default") {
-         console.log("알림 권한 요청 중...");
-         permission = await Notification.requestPermission();
-         console.log("사용자 선택:", permission);
-       }
-
-       if (permission === "granted") {
-         console.log("알림 권한 허용됨 - FCM 토큰 발급 시작");
-
-         // 알림 권한 허용 시 서버에 notificationEnabled: true 업데이트
-         await tryUpdateNotificationSettings(true);
-
-         // messaging 함수 실행해서 객체 가져오기
-         const messagingInstance = await messaging();
-         if (!messagingInstance) {
-           console.log("Firebase Messaging 초기화 실패");
-           return null;
-         }
-         // FCM 토큰 발급
-         const token = await getToken(messagingInstance, {
-           vapidKey: VAPID_KEY,
-         });
-
-         if (token) {
-           console.log("FCM 토큰 발급 성공:", token);
-           await saveTokenToServer(token, accessToken);
-           return token;
-         } else {
-           console.log("토큰 발급 실패");
-           return null;
-         }
-       } else if (permission === "denied") {
-         console.log("알림 권한이 거부되었습니다. 브라우저 설정에서 변경 가능합니다.");
-
-         // 알림 권한 거부 시 서버에 notificationEnabled: false 업데이트
-         await tryUpdateNotificationSettings(false);
-
-         return null;
-       } else {
-         console.log("알림 권한이 결정되지 않았습니다");
-         return null;
-       }
-     } catch (error: any) {
-       const errorMessage = error?.message || "FCM 토큰 요청 중 오류가 발생했습니다"
-       console.error("FCM 토큰 요청 오류:", errorMessage, error);
-       return null;
-     }
-   };
-   
 // 서버에 토큰 저장하는 함수
 const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) => {
   try {
@@ -169,35 +150,35 @@ const saveTokenToServer = async (fcmToken: string, accessToken?: string | null) 
     console.error("FCM 토큰 서버 저장 오류:", errorMessage, error);
   }
 };
-   
-   // 앱이 켜져있을 때 알림 받는 함수
-   export const onForegroundMessage = async () => {
-     const messagingInstance = await messaging();
-     if (!messagingInstance) return null;
 
-     const unsubscribe = onMessage(messagingInstance, (payload) => {
-       console.log("포그라운드 메시지 수신:", payload);
+// 앱이 켜져있을 때 알림 받는 함수
+export const onForegroundMessage = async () => {
+  const messagingInstance = await messaging();
+  if (!messagingInstance) return null;
 
-       // data 필드 우선 사용 (서버가 data 필드만 보내도록 권장)
-       const data = payload.data || {};
-       const notificationTitle = data.title || payload.notification?.title || "새로운 질문";
-       const notificationBody = data.body || payload.notification?.body || "오늘의 질문이 등록되었습니다";
-       const redirectPath = data.redirectPath || "/home"; // 백엔드가 보내는 리다이렉트 경로
+  const unsubscribe = onMessage(messagingInstance, (payload) => {
+    console.log("포그라운드 메시지 수신:", payload);
 
-       if (Notification.permission === "granted") {
-         const notification = new Notification(notificationTitle, {
-           body: notificationBody,
-           icon: "/icon-192.png", 
-           data: { ...data, redirectPath }, // 클릭 시 사용할 데이터 포함
-         });
+    // data 필드 우선 사용 (서버가 data 필드만 보내도록 권장)
+    const data = payload.data || {};
+    const notificationTitle = data.title || payload.notification?.title || "새로운 질문";
+    const notificationBody = data.body || payload.notification?.body || "오늘의 질문이 등록되었습니다";
+    const redirectPath = data.redirectPath || "/home"; // 백엔드가 보내는 리다이렉트 경로
 
-         // 알림 클릭 시 페이지 이동 (CustomEvent로 React Router에 위임)
-         notification.onclick = () => {
-           window.focus();
-           window.dispatchEvent(new CustomEvent('fcm-navigate', { detail: redirectPath }));
-         };
-       }
-     });
+    if (Notification.permission === "granted") {
+      const notification = new Notification(notificationTitle, {
+        body: notificationBody,
+        icon: "/icon-192.png",
+        data: { ...data, redirectPath }, // 클릭 시 사용할 데이터 포함
+      });
 
-     return unsubscribe;
-   };
+      // 알림 클릭 시 페이지 이동 (CustomEvent로 React Router에 위임)
+      notification.onclick = () => {
+        window.focus();
+        window.dispatchEvent(new CustomEvent('fcm-navigate', { detail: redirectPath }));
+      };
+    }
+  });
+
+  return unsubscribe;
+};

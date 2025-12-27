@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch"
 import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { updateNotificationSettings } from "@/lib/notification-api"
+import { updateDeviceNotificationSettings } from "@/lib/notification-api"
+import { getOrCreateDeviceId } from "@/src/lib/fcmTokenManager"
 
 export default function SettingsPage() {
   const { logout, deleteAccount, isAuthenticated, user } = useAuthContext()
@@ -14,26 +15,62 @@ export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
-  // 페이지 로드 시 user.notificationEnabled 값으로 초기화
+  // 페이지 로드 시 브라우저 알림 권한 상태로 초기화
   useEffect(() => {
-    if (user?.notificationEnabled !== undefined) {
-      setNotificationsEnabled(user.notificationEnabled)
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotificationsEnabled(Notification.permission === "granted")
     }
-  }, [user?.notificationEnabled])
+  }, [])
 
   // 알림 설정 토글 변경 핸들러
   const handleNotificationToggle = async (enabled: boolean) => {
     setIsUpdating(true)
-    setNotificationsEnabled(enabled) // 낙관적 UI 업데이트
 
     try {
-      await updateNotificationSettings(enabled)
-      console.log("알림 설정 업데이트 성공:", enabled)
+      const deviceId = getOrCreateDeviceId()
+
+      if (enabled) {
+        // 알림 켜기: 브라우저 권한 확인 후 서버 업데이트
+        console.log("알림 권한 확인 중...")
+        const currentPermission = Notification.permission
+
+        if (currentPermission === "granted") {
+          // 이미 권한이 허용되어 있으면 바로 API 호출
+          setNotificationsEnabled(true)
+          await updateDeviceNotificationSettings(deviceId, true)
+          console.log("알림 설정 업데이트 성공: true (기존 권한 사용)")
+        } else if (currentPermission === "denied") {
+          // 권한이 차단된 경우 - 브라우저 설정에서 변경하도록 안내
+          setNotificationsEnabled(false)
+          alert("브라우저 알림이 차단되어 있습니다.\n\n브라우저 주소창 왼쪽의 자물쇠 아이콘을 클릭하여 알림 권한을 허용해주세요.")
+          console.log("알림 권한이 차단되어 있음 (denied)")
+        } else {
+          // 권한이 아직 결정되지 않은 경우 (default) - 권한 요청
+          const permission = await Notification.requestPermission()
+          console.log("사용자 선택:", permission)
+
+          if (permission === "granted") {
+            // 권한 허용 시
+            setNotificationsEnabled(true)
+            await updateDeviceNotificationSettings(deviceId, true)
+            console.log("알림 설정 업데이트 성공: true (새 권한 허용)")
+          } else {
+            // 권한 거부 시
+            setNotificationsEnabled(false)
+            console.log("사용자가 알림 권한을 거부했습니다")
+          }
+        }
+      } else {
+        // 알림 끄기: 서버에 알림 비활성화 요청
+        setNotificationsEnabled(false)
+        await updateDeviceNotificationSettings(deviceId, false)
+        console.log("알림 설정 업데이트 성공: false")
+      }
     } catch (error: any) {
       const errorMessage = error?.message || "알림 설정 업데이트에 실패했습니다"
       console.error("알림 설정 업데이트 실패:", errorMessage, error)
-      // 실패 시 원래 상태로 복구
-      setNotificationsEnabled(!enabled)
+      // 실패 시 브라우저 권한 상태로 복구
+      setNotificationsEnabled(Notification.permission === "granted")
       alert(`알림 설정 업데이트에 실패했습니다: ${errorMessage}`)
     } finally {
       setIsUpdating(false)
