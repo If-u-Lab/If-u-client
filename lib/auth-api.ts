@@ -18,11 +18,10 @@ interface ApiResponse<T> {
 export interface User {
   id: number
   nickname: string
-  email?: string 
+  email?: string
   providerId: string
   role: "USER" | "ADMIN"
   isDeleted: boolean
-  notificationEnabled: boolean 
   stats?: {
     totalVotes: number
     totalComments: number
