@@ -1,9 +1,9 @@
 "use client"
 
-import { Cog6ToothIcon } from "@heroicons/react/24/outline"
+import { Cog6ToothIcon, TicketIcon } from "@heroicons/react/24/outline"
+import { FireIcon } from "@heroicons/react/24/solid"
 import { UserGroupIcon, ScaleIcon, RocketLaunchIcon } from "@heroicons/react/24/solid"
 import { useUserProfile } from "@/hooks/use-user-profile"
-import { ActivityChart } from "@/components/activity-chart"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { useRouter } from "next/navigation"
 
@@ -82,7 +82,8 @@ export default function ProfilePage() {
           <TendencyIcon className="w-14 h-14 text-primary/70" />
         </div>
         <h2 className="text-2xl font-bold text-foreground mb-2">{profile.username}</h2>
-        <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-sm font-medium">
+          <FireIcon className="w-4 h-4" />
           {profile.currentStreak}일 연속 참여 중
         </span>
       </div>
@@ -115,11 +116,39 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 최근 활동 */}
+        {/* 7일 연속 참여 보상 */}
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="font-semibold text-foreground mb-4">최근 7일</h3>
-          <ActivityChart data={profile.recentActivity} />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground">7일 연속 참여 보상</h3>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 rounded-full">
+              <TicketIcon className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">1개</span>
+            </div>
+          </div>
+
+          {/* 프로그레스 */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">
+                {profile.currentStreak >= 7 ? "달성 완료!" : `${profile.currentStreak}/7일`}
+              </span>
+              {profile.currentStreak >= 7 && (
+                <span className="text-xs text-primary font-medium">+1 획득 가능</span>
+              )}
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary/60 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min((profile.currentStreak / 7) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            7일 연속 참여하면 놓친 투표 결과를 열어볼 수 있어요
+          </p>
         </div>
+
       </div>
     </div>
   )
