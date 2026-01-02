@@ -33,6 +33,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   // API로 불러온 question 객체에서 직접 사용
   const userVote = question?.userChoice ?? null
   const hasVoted = question?.hasVoted ?? false
+  const canViewResults = question?.canViewResults ?? hasVoted
 
   if (isLoading) {
     return <LoadingSkeleton />
@@ -64,8 +65,8 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     )
   }
 
-  // Handle CLOSED questions without user vote - show limited info
-  if (question.status === "CLOSED" && !hasVoted) {
+  // Handle CLOSED questions without access - show limited info
+  if (question.status === "CLOSED" && !canViewResults) {
     return (
       <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
         {/* Back button */}
@@ -104,69 +105,67 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-5 pt-6 pb-12 md:px-8 md:pt-10 md:pb-20">
-      {/* Header */}
-      <div className="relative flex items-center justify-center mb-6">
-        <button
-          onClick={() => router.back()}
-          className="absolute left-0 p-2.5 active:bg-muted rounded-lg transition-colors"
-        >
-          <ArrowLeftIcon className="w-6 h-6 text-foreground" />
-        </button>
-        <span className="text-lg font-medium text-muted-foreground">{question.date}</span>
-      </div>
+    <div className="flex flex-col h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] max-w-2xl mx-auto">
+      {/* 고정 상단: 헤더 + 질문 */}
+      <div className="flex-shrink-0 px-5 pt-6 pb-4 md:px-8 md:pt-10 md:pb-6 bg-background border-b border-border">
+        {/* Header */}
+        <div className="relative flex items-center justify-center mb-4">
+          <button
+            onClick={() => router.back()}
+            className="absolute left-0 p-2.5 active:bg-muted rounded-lg transition-colors"
+          >
+            <ArrowLeftIcon className="w-6 h-6 text-foreground" />
+          </button>
+          <span className="text-lg font-medium text-muted-foreground">{question.date}</span>
+        </div>
 
-      <div className="space-y-8">
         {/* Title & Description */}
-        <div className="space-y-3">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+        <div className="space-y-2 mb-4">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground leading-tight">
             {question.title}
           </h1>
           {question.description && (
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+            <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
               {question.description}
             </p>
           )}
         </div>
 
         {/* VS Vote Options */}
-        <div className="relative">
-          <div className="space-y-3">
-            {question.options.map((option, i) => {
-              const isSelected = userVote === i
+        <div className="space-y-2 mb-3">
+          {question.options.map((option, i) => {
+            const isSelected = userVote === i
 
-              return (
-                <button
-                  key={i}
-                  onClick={() => !hasVoted && question.status !== "CLOSED" && castVote(question.id, i)}
-                  disabled={loadingId === question.id || question.status === "CLOSED"}
-                  className={`w-full p-5 md:p-6 rounded-xl border-2 transition-all font-medium text-base md:text-lg relative overflow-hidden ${
-                    question.status === "CLOSED"
-                      ? "border-border bg-muted text-foreground cursor-not-allowed opacity-60"
-                      : hasVoted
-                        ? "border-primary/30 text-foreground"
-                        : "border-border text-foreground active:border-primary/60 active:bg-primary/5"
-                  } ${loadingId === question.id ? "opacity-60 cursor-wait" : ""}`}
-                >
-                  {/* 배경 채우기 - 비율만큼 */}
-                  {hasVoted && (
-                    <div className="absolute top-0 left-0 bottom-0 bg-primary/15 transition-all duration-500 rounded-l-lg"
-                      style={{ width: `${question.votes[i]}%` }}
-                    />
+            return (
+              <button
+                key={i}
+                onClick={() => question.status !== "CLOSED" && (!hasVoted || (question.canChangeVote ?? true)) && castVote(question.id, i)}
+                disabled={loadingId === question.id || question.status === "CLOSED"}
+                className={`w-full p-4 md:p-5 rounded-xl border-2 transition-all font-medium text-sm md:text-base relative overflow-hidden ${
+                  question.status === "CLOSED"
+                    ? "border-border bg-muted text-foreground cursor-not-allowed opacity-60"
+                    : canViewResults
+                      ? "border-primary/30 text-foreground"
+                      : "border-border text-foreground active:border-primary/60 active:bg-primary/5"
+                } ${loadingId === question.id ? "opacity-60 cursor-wait" : ""}`}
+              >
+                {/* 배경 채우기 - 비율만큼 */}
+                {canViewResults && (
+                  <div className="absolute top-0 left-0 bottom-0 bg-primary/15 transition-all duration-500 rounded-l-lg"
+                    style={{ width: `${question.votes[i]}%` }}
+                  />
+                )}
+                <div className="relative flex items-center justify-between">
+                  <span className="leading-relaxed">{option}</span>
+                  {canViewResults && (
+                    <span className="text-base font-bold text-foreground">
+                      {question.votes[i].toFixed(1)}%
+                    </span>
                   )}
-                  <div className="relative flex items-center justify-between">
-                    <span className="leading-relaxed">{option}</span>
-                    {hasVoted && (
-                      <span className="text-lg font-bold text-foreground">
-                        {question.votes[i].toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
+                </div>
+              </button>
+            )
+          })}
         </div>
 
         {/* Participation info */}
@@ -175,12 +174,14 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
           <span>·</span>
           <span>댓글 {question.commentCount}개</span>
         </div>
-
-        {/* Show comments only if user has voted */}
-        {hasVoted && (
-          <CommentSection questionId={question.id} commentCount={question.commentCount} />
-        )}
       </div>
+
+      {/* 스크롤 가능한 댓글 영역 */}
+      {canViewResults && (
+        <div className="flex-1 overflow-y-auto">
+          <CommentSection questionId={question.id} commentCount={question.commentCount} />
+        </div>
+      )}
     </div>
   )
 }
