@@ -47,6 +47,7 @@ export interface QuestionResponse {
   userChoice: number | null
   canVote?: boolean
   canChangeVote?: boolean
+  canViewResults?: boolean
   voteStats: VoteStats | null
 }
 
@@ -119,6 +120,7 @@ export interface UserStats {
   participationRate: number
   majorityRate: number
   currentStreak: number
+  ticketCount: number
   weeklyActivity: boolean[]
 }
 
@@ -134,4 +136,69 @@ export interface UserResponse {
   isDeleted: boolean
   notificationEnabled: boolean
   stats: UserStats
+}
+
+/**
+ * 열람권 사용 응답
+ */
+export interface TicketUseResponse {
+  questionId: number
+  remainingTickets: number
+}
+
+/**
+ * 댓글 삭제 주체
+ */
+export type CommentDeletedBy = "USER" | "ADMIN" | null
+
+/**
+ * 대댓글 응답
+ */
+export interface CommentReplyResponse {
+  commentId: number
+  userId: number
+  userNickname: string
+  content: string
+  isDeleted: boolean
+  deletedBy: CommentDeletedBy
+  createdAt: string
+  likeCount: number
+  isLiked: boolean
+}
+
+/**
+ * 댓글 응답
+ */
+export interface CommentResponse {
+  commentId: number
+  questionId: number
+  parentId: number | null
+  userId: number
+  userNickname: string
+  content: string
+  isDeleted: boolean
+  deletedBy: CommentDeletedBy
+  createdAt: string
+  likeCount: number
+  isLiked: boolean
+  replies: CommentReplyResponse[]
+}
+
+/**
+ * 댓글 목록 조회 응답 (페이지 기반)
+ */
+export interface CommentsListResponse {
+  page: number
+  size: number
+  hasNext: boolean
+  items: CommentResponse[]
+}
+
+/**
+ * 댓글 작성 요청
+ */
+export interface CreateCommentRequest {
+  questionId: number
+  parentId: number | null
+  content: string
 }

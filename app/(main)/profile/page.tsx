@@ -122,7 +122,7 @@ export default function ProfilePage() {
             <h3 className="font-semibold text-foreground">7일 연속 참여 보상</h3>
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 rounded-full">
               <TicketIcon className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">1개</span>
+              <span className="text-sm font-semibold text-primary">{profile.ticketCount}개</span>
             </div>
           </div>
 

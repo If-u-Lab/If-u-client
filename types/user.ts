@@ -14,6 +14,7 @@ export interface UserProfile {
   engagementRate: number
   majorityRate: number
   currentStreak: number
+  ticketCount: number
   recentActivity: ActivityItem[]
   bestComments: Comment[]
 }

@@ -37,6 +37,7 @@ export function useUserProfile() {
     engagementRate: 0,
     majorityRate: 0,
     currentStreak: 0,
+    ticketCount: 0,
     recentActivity: generateDefaultActivity(),
     bestComments: [],
   })
@@ -65,6 +66,7 @@ export function useUserProfile() {
         engagementRate: Math.round(data.stats.participationRate),
         majorityRate: Math.round(data.stats.majorityRate),
         currentStreak: data.stats.currentStreak,
+        ticketCount: data.stats.ticketCount,
         recentActivity: convertWeeklyActivity(data.stats.weeklyActivity),
         bestComments: [],
       })

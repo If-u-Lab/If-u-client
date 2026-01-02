@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { UserGroupIcon, ScaleIcon, RocketLaunchIcon, HandThumbUpIcon, ChatBubbleOvalLeftIcon, EllipsisVerticalIcon } from "@heroicons/react/24/outline"
 import { HandThumbUpIcon as HandThumbUpSolidIcon } from "@heroicons/react/24/solid"
+import type { CommentDeletedBy } from "@/types/entities"
 
 interface CommentItemProps {
   id: string
@@ -13,6 +14,8 @@ interface CommentItemProps {
   isReply?: boolean
   userLiked?: boolean
   isOwn?: boolean
+  isDeleted?: boolean
+  deletedBy?: CommentDeletedBy
   onReply?: (commentId: string) => void
   onLike?: (commentId: string) => void
   onDelete?: (commentId: string) => void
@@ -29,6 +32,8 @@ export function CommentItem({
   isReply = false,
   userLiked = false,
   isOwn = false,
+  isDeleted = false,
+  deletedBy = null,
   onReply,
   onLike,
   onDelete,
@@ -43,6 +48,14 @@ export function CommentItem({
   const iconIndex = author.charCodeAt(0) % 3
   const ProfileIcon = profileIcons[iconIndex]
 
+  // 삭제된 댓글 메시지
+  const getDisplayText = () => {
+    if (!isDeleted) return text
+    return deletedBy === "ADMIN"
+      ? "관리자에 의해 삭제된 댓글입니다"
+      : "삭제된 댓글입니다"
+  }
+
   // 메뉴 외부 클릭 시 닫기
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -53,6 +66,26 @@ export function CommentItem({
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  // 삭제된 댓글은 액션 비활성화
+  if (isDeleted) {
+    return (
+      <div className={`${isReply ? "ml-6 pl-3 border-l-2 border-muted" : ""}`}>
+        <div className="flex items-center gap-1.5 mb-1">
+          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
+            <ProfileIcon className="w-3 h-3" />
+          </div>
+          <span className="text-[15px] font-medium text-muted-foreground">{author}</span>
+        </div>
+        <p className="text-base text-muted-foreground italic leading-relaxed mb-1.5 pl-[26px]">
+          {getDisplayText()}
+        </p>
+        <div className="flex items-center gap-2 pl-[26px]">
+          <span className="text-sm text-muted-foreground">{date}</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`${isReply ? "ml-6 pl-3 border-l-2 border-muted" : ""}`}>
@@ -102,7 +135,7 @@ export function CommentItem({
                       onDelete?.(id)
                       setShowMenu(false)
                     }}
-                    className="w-full px-3 py-2 text-left text-sm text-destructive hover:bg-muted"
+                    className="w-full px-3 py-2 text-left text-sm text-destructive active:bg-muted"
                   >
                     삭제
                   </button>
@@ -113,7 +146,7 @@ export function CommentItem({
                         onBlock?.(id)
                         setShowMenu(false)
                       }}
-                      className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted"
+                      className="w-full px-3 py-2 text-left text-sm text-foreground active:bg-muted"
                     >
                       차단
                     </button>
@@ -122,7 +155,7 @@ export function CommentItem({
                         onReport?.(id)
                         setShowMenu(false)
                       }}
-                      className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted"
+                      className="w-full px-3 py-2 text-left text-sm text-foreground active:bg-muted"
                     >
                       신고
                     </button>
@@ -135,7 +168,7 @@ export function CommentItem({
       </div>
 
       {/* 댓글 내용 */}
-      <p className="text-base text-foreground leading-relaxed mb-1.5 pl-[26px]">{text}</p>
+      <p className="text-base text-foreground leading-relaxed mb-1.5 pl-[26px]">{getDisplayText()}</p>
 
       {/* 날짜 & 좋아요 수 */}
       <div className="flex items-center gap-2 pl-[26px]">

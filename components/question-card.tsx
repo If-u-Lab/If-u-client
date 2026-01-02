@@ -74,11 +74,12 @@ export function QuestionCard({
     }
   }, [showResults])
 
-  // 투표 변경 가능 여부: CLOSED가 아니면 변경 가능
-  const isVoteChangeable = question.status !== "CLOSED"
+  // 투표 가능 여부: CLOSED가 아니고, 첫 투표이거나 투표 변경이 허용된 경우
+  const isVoteChangeable = question.status !== "CLOSED" && (!hasVoted || (question.canChangeVote ?? true))
 
-  // 참여하지 않은 종료된 질문은 블러 처리
-  const isClosedWithoutVote = question.status === "CLOSED" && !hasVoted
+  // 참여하지 않고 열람권도 사용 안 한 종료된 질문은 블러 처리
+  const canViewResults = question.canViewResults ?? hasVoted
+  const isClosedWithoutAccess = question.status === "CLOSED" && !canViewResults
 
   return (
     <div ref={cardRef} className="w-full bg-white rounded-lg border border-border p-4 md:p-6 space-y-3 relative overflow-hidden">
@@ -93,13 +94,13 @@ export function QuestionCard({
               </span>
             ) : (
               !hasVoted && !hideVoteAfterMessage && (
-                <span className="px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap bg-primary/10 text-primary">
+                <span className="px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap bg-primary/10 text-primary/60">
                   투표 후 확인
                 </span>
               )
             )}
           </div>
-          {onDetailClick && !isClosedWithoutVote && (
+          {onDetailClick && !isClosedWithoutAccess && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -126,7 +127,7 @@ export function QuestionCard({
 
       <div className="relative">
         {/* 옵션 버튼들 */}
-        <div className={`space-y-3 ${isClosedWithoutVote ? "blur-sm pointer-events-none" : ""}`}>
+        <div className={`space-y-3 ${isClosedWithoutAccess ? "blur-sm pointer-events-none" : ""}`}>
           {question.options.map((option, i) => (
             <button
               key={i}
@@ -155,8 +156,8 @@ export function QuestionCard({
           ))}
         </div>
 
-        {/* 참여하지 않은 종료된 질문 오버레이 */}
-        {isClosedWithoutVote && (
+        {/* 참여하지 않고 열람권도 사용 안 한 종료된 질문 오버레이 */}
+        {isClosedWithoutAccess && (
           <button
             onClick={(e) => {
               e.stopPropagation()
