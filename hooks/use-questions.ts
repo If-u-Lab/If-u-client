@@ -39,6 +39,8 @@ export function toQuestion(response: QuestionResponse, isToday = false): Questio
     status: response.status,
     hasVoted: response.hasVoted,
     userChoice,
+    canViewResults: response.canViewResults ?? response.hasVoted,
+    canChangeVote: response.canChangeVote ?? true,
   }
 }
 
