@@ -1,10 +1,15 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Comment } from "@/types/entities"
+import type { CommentResponse, CommentReplyResponse } from "@/types/api"
+import * as commentsApi from "@/lib/api/comments"
 
-// 날짜 포맷 함수 (MM/DD HH:mm)
-function formatDate(date: Date): string {
+/**
+ * 날짜 포맷 함수 (MM/DD HH:mm)
+ */
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate)
   const month = String(date.getMonth() + 1).padStart(2, "0")
   const day = String(date.getDate()).padStart(2, "0")
   const hours = String(date.getHours()).padStart(2, "0")
@@ -12,168 +17,335 @@ function formatDate(date: Date): string {
   return `${month}/${day} ${hours}:${minutes}`
 }
 
-// 랜덤 닉네임 생성용 단어
-const adjectives = ["행복한", "빠른", "느긋한", "귀여운", "용감한", "졸린", "배고픈", "신나는", "차분한", "영리한"]
-const nouns = ["고양이", "강아지", "토끼", "다람쥐", "펭귄", "코알라", "판다", "여우", "사자", "호랑이"]
-
-function generateNickname(): string {
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
-  const noun = nouns[Math.floor(Math.random() * nouns.length)]
-  return `${adj}${noun}`
+/**
+ * API 대댓글 응답을 Comment 엔티티로 변환
+ */
+function toReplyComment(reply: CommentReplyResponse, parentId: string): Comment {
+  return {
+    id: String(reply.commentId),
+    author: reply.userNickname,
+    userId: reply.userId,
+    date: formatDate(reply.createdAt),
+    text: reply.content,
+    likes: reply.likeCount,
+    userLiked: reply.isLiked,
+    replies: [],
+    isDeleted: reply.isDeleted,
+    deletedBy: reply.deletedBy,
+    parentId,
+  }
 }
 
-// 현재 사용자 닉네임 (실제로는 AuthContext에서 가져와야 함)
-const CURRENT_USER = "즐거운펭귄"
-
-// Mock data
-const mockCommentsData: Comment[] = [
-  {
-    id: "1",
-    author: "행복한고양이",
-    date: "12/27 20:15",
-    text: "AI 기술 발전은 필연적인 흐름이라고 생각해요. 중요한 건 이에 대한 준비입니다.",
-    likes: 23,
-    replies: [
-      {
-        id: "r1",
-        author: "빠른토끼",
-        date: "12/27 20:30",
-        text: "맞아요! 기술 변화에 대비하는 교육이 정말 중요하다고 봅니다.",
-        likes: 5,
-        replies: [],
-        userLiked: false,
-      },
-      {
-        id: "r2",
-        author: "용감한사자",
-        date: "12/27 20:45",
-        text: "하지만 일자리 감소로 인한 사회적 안전망도 필요하지 않을까요?",
-        likes: 8,
-        replies: [],
-        userLiked: false,
-      },
-    ],
-    userLiked: false,
-  },
-  {
-    id: "2",
-    author: "귀여운판다",
-    date: "12/27 19:45",
-    text: "AI가 단순 반복 업무를 대체하면 우리는 더 창의적인 일에 집중할 수 있습니다.",
-    likes: 42,
-    replies: [],
-    userLiked: false,
-  },
-  {
-    id: "3",
-    author: "느긋한코알라",
-    date: "12/27 19:20",
-    text: "역사적으로 기술 발전은 새로운 일자리를 만들어왔습니다. 산업 혁명 때도 그랬죠.",
-    likes: 15,
-    replies: [],
-    userLiked: true,
-  },
-]
+/**
+ * API 댓글 응답을 Comment 엔티티로 변환
+ */
+function toComment(response: CommentResponse): Comment {
+  return {
+    id: String(response.commentId),
+    author: response.userNickname,
+    userId: response.userId,
+    date: formatDate(response.createdAt),
+    text: response.content,
+    likes: response.likeCount,
+    userLiked: response.isLiked,
+    replies: response.replies.map((r) => toReplyComment(r, String(response.commentId))),
+    isDeleted: response.isDeleted,
+    deletedBy: response.deletedBy,
+    parentId: response.parentId ? String(response.parentId) : null,
+  }
+}
 
 export function useComments(questionId: string) {
-  const [comments, setComments] = useState<Comment[]>(mockCommentsData)
+  const [comments, setComments] = useState<Comment[]>([])
   const [newCommentText, setNewCommentText] = useState("")
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const addComment = useCallback((text: string) => {
-    if (!text.trim()) return
+  // 현재 사용자 ID (AuthContext에서 가져와야 하지만 일단 localStorage에서)
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      author: CURRENT_USER,
-      date: formatDate(new Date()),
-      text,
-      likes: 0,
-      replies: [],
-      userLiked: false,
+  // 중복 호출 방지
+  const isLoadingRef = useRef(false)
+  const isSubmittingRef = useRef(false)
+
+  // 현재 사용자 ID 로드
+  useEffect(() => {
+    // TODO: AuthContext에서 실제 userId 가져오기
+    const storedUserId = localStorage.getItem("user_id")
+    if (storedUserId) {
+      setCurrentUserId(Number(storedUserId))
     }
-
-    setComments((prev) => [newComment, ...prev])
-    setNewCommentText("")
   }, [])
 
-  const addReply = useCallback((parentId: string, text: string) => {
-    if (!text.trim()) return
+  // 댓글 목록 조회
+  const fetchComments = useCallback(async (pageNum = 1, append = false) => {
+    if (isLoadingRef.current) return
+    isLoadingRef.current = true
 
-    const reply: Comment = {
-      id: `reply-${Date.now()}`,
-      author: CURRENT_USER,
-      date: formatDate(new Date()),
-      text,
-      likes: 0,
-      replies: [],
-      userLiked: false,
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await commentsApi.getComments(Number(questionId), {
+        page: pageNum,
+        size: 10,
+      })
+
+      const newComments = response.data.items.map(toComment)
+
+      if (append) {
+        setComments((prev) => [...prev, ...newComments])
+      } else {
+        setComments(newComments)
+      }
+
+      setPage(pageNum)
+      setHasMore(response.data.hasNext)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "댓글을 불러오지 못했습니다")
+    } finally {
+      setIsLoading(false)
+      isLoadingRef.current = false
     }
+  }, [questionId])
 
-    setComments((prev) =>
-      prev.map((comment) => {
-        if (comment.id === parentId) {
-          return {
-            ...comment,
-            replies: [reply, ...comment.replies],
-          }
-        }
-        return comment
-      }),
-    )
-    setReplyingTo(null)
-    setReplyText("")
-  }, [])
+  // 초기 로드
+  useEffect(() => {
+    fetchComments(1)
+  }, [fetchComments])
 
-  const toggleLike = useCallback((commentId: string) => {
-    setComments((prev) =>
-      prev.map((comment) => {
-        if (comment.id === commentId) {
-          return {
-            ...comment,
-            likes: comment.userLiked ? comment.likes - 1 : comment.likes + 1,
-            userLiked: !comment.userLiked,
-          }
-        }
-        // Also update nested replies
-        return {
-          ...comment,
-          replies: comment.replies.map((reply) => {
-            if (reply.id === commentId) {
-              return {
-                ...reply,
-                likes: reply.userLiked ? reply.likes - 1 : reply.likes + 1,
-                userLiked: !reply.userLiked,
-              }
+  // 더 불러오기
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingRef.current) {
+      fetchComments(page + 1, true)
+    }
+  }, [hasMore, page, fetchComments])
+
+  // 댓글 작성
+  const addComment = useCallback(async (text: string) => {
+    if (!text.trim() || isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      const response = await commentsApi.createComment({
+        questionId: Number(questionId),
+        parentId: null,
+        content: text,
+      })
+
+      const newComment = toComment(response.data)
+      setComments((prev) => [newComment, ...prev])
+      setNewCommentText("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "댓글 작성에 실패했습니다")
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
+  }, [questionId])
+
+  // 대댓글 작성
+  const addReply = useCallback(async (parentId: string, text: string) => {
+    if (!text.trim() || isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      const response = await commentsApi.createComment({
+        questionId: Number(questionId),
+        parentId: Number(parentId),
+        content: text,
+      })
+
+      const newReply = toComment(response.data)
+      // replies 배열이 빈 배열로 오므로, toReplyComment 형태로 변환
+      const replyComment: Comment = {
+        ...newReply,
+        parentId,
+      }
+
+      setComments((prev) =>
+        prev.map((comment) => {
+          if (comment.id === parentId) {
+            return {
+              ...comment,
+              replies: [...comment.replies, replyComment],
             }
-            return reply
-          }),
-        }
-      }),
-    )
+          }
+          return comment
+        })
+      )
+      setReplyingTo(null)
+      setReplyText("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "답글 작성에 실패했습니다")
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
+  }, [questionId])
+
+  // 좋아요 토글
+  const toggleLike = useCallback(async (commentId: string) => {
+    // 먼저 현재 상태 확인
+    let targetComment: Comment | undefined
+    let isReply = false
+    let parentCommentId: string | undefined
+
+    // 댓글에서 찾기
+    for (const comment of comments) {
+      if (comment.id === commentId) {
+        targetComment = comment
+        break
+      }
+      // 대댓글에서 찾기
+      const reply = comment.replies.find((r) => r.id === commentId)
+      if (reply) {
+        targetComment = reply
+        isReply = true
+        parentCommentId = comment.id
+        break
+      }
+    }
+
+    if (!targetComment) return
+
+    const isCurrentlyLiked = targetComment.userLiked
+
+    try {
+      // 낙관적 업데이트
+      setComments((prev) =>
+        prev.map((comment) => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              likes: isCurrentlyLiked ? comment.likes - 1 : comment.likes + 1,
+              userLiked: !isCurrentlyLiked,
+            }
+          }
+          // 대댓글 업데이트
+          return {
+            ...comment,
+            replies: comment.replies.map((reply) => {
+              if (reply.id === commentId) {
+                return {
+                  ...reply,
+                  likes: isCurrentlyLiked ? reply.likes - 1 : reply.likes + 1,
+                  userLiked: !isCurrentlyLiked,
+                }
+              }
+              return reply
+            }),
+          }
+        })
+      )
+
+      // API 호출
+      if (isCurrentlyLiked) {
+        await commentsApi.unlikeComment(Number(commentId))
+      } else {
+        await commentsApi.likeComment(Number(commentId))
+      }
+    } catch (err) {
+      // 롤백
+      setComments((prev) =>
+        prev.map((comment) => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              likes: isCurrentlyLiked ? comment.likes + 1 : comment.likes - 1,
+              userLiked: isCurrentlyLiked,
+            }
+          }
+          return {
+            ...comment,
+            replies: comment.replies.map((reply) => {
+              if (reply.id === commentId) {
+                return {
+                  ...reply,
+                  likes: isCurrentlyLiked ? reply.likes + 1 : reply.likes - 1,
+                  userLiked: isCurrentlyLiked,
+                }
+              }
+              return reply
+            }),
+          }
+        })
+      )
+      setError(err instanceof Error ? err.message : "좋아요에 실패했습니다")
+    }
+  }, [comments])
+
+  // 댓글 삭제
+  const deleteComment = useCallback(async (commentId: string) => {
+    try {
+      await commentsApi.deleteComment(Number(commentId))
+
+      // 삭제된 댓글 상태 업데이트 (완전 제거 대신 isDeleted 표시)
+      setComments((prev) =>
+        prev.map((comment) => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              isDeleted: true,
+              deletedBy: "USER",
+              text: "삭제된 댓글입니다",
+            }
+          }
+          return {
+            ...comment,
+            replies: comment.replies.map((reply) => {
+              if (reply.id === commentId) {
+                return {
+                  ...reply,
+                  isDeleted: true,
+                  deletedBy: "USER",
+                  text: "삭제된 댓글입니다",
+                }
+              }
+              return reply
+            }),
+          }
+        })
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제에 실패했습니다")
+    }
   }, [])
 
-  const deleteComment = useCallback((commentId: string) => {
-    setComments((prev) =>
-      prev
-        .filter((comment) => comment.id !== commentId)
-        .map((comment) => ({
-          ...comment,
-          replies: comment.replies.filter((reply) => reply.id !== commentId),
-        })),
-    )
+  // 사용자 차단
+  const blockUser = useCallback(async (commentId: string) => {
+    try {
+      await commentsApi.blockComment(Number(commentId))
+      // 차단 후 댓글 목록 새로고침 (백엔드에서 차단된 사용자 댓글은 "차단된 댓글입니다"로 대체됨)
+      await fetchComments(1)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "차단에 실패했습니다")
+    }
+  }, [fetchComments])
+
+  // 댓글 신고
+  const reportComment = useCallback(async (commentId: string) => {
+    try {
+      await commentsApi.reportComment(Number(commentId))
+      // 신고 성공 알림 (추후 토스트로 대체)
+      alert("신고가 접수되었습니다")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "신고에 실패했습니다")
+    }
   }, [])
 
-  const blockUser = useCallback((commentId: string) => {
-    // TODO: API 연동 시 실제 차단 기능 구현
-    console.log("차단:", commentId)
-  }, [])
-
-  const reportComment = useCallback((commentId: string) => {
-    // TODO: API 연동 시 실제 신고 기능 구현
-    console.log("신고:", commentId)
-  }, [])
+  // 본인 댓글 여부 확인
+  const isOwnComment = useCallback((userId: number) => {
+    return currentUserId === userId
+  }, [currentUserId])
 
   return {
     comments,
@@ -189,5 +361,13 @@ export function useComments(questionId: string) {
     deleteComment,
     blockUser,
     reportComment,
+    isLoading,
+    isSubmitting,
+    error,
+    hasMore,
+    loadMore,
+    isOwnComment,
+    currentUserId,
+    refresh: () => fetchComments(1),
   }
 }
