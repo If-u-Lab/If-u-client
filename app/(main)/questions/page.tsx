@@ -7,15 +7,19 @@ import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { PullToRefresh } from "@/components/pull-to-refresh"
 import { useQuestionsContext } from "@/contexts/questions-context"
 import { useAuthContext } from "@/contexts/auth-context"
+import { useUserProfile } from "@/hooks/use-user-profile"
 import { ChatBubbleOvalLeftEllipsisIcon, TicketIcon } from "@heroicons/react/24/outline"
+import * as ticketsApi from "@/lib/api/tickets"
 import type { Question } from "@/types/entities"
 
 export default function QuestionsPage() {
   const router = useRouter()
   const { isLoading: authLoading } = useAuthContext()
+  const { profile, fetchProfile } = useUserProfile()
   const [showTicketModal, setShowTicketModal] = useState(false)
   const [selectedClosedQuestion, setSelectedClosedQuestion] = useState<Question | null>(null)
-  const ticketCount = 1 // TODO: 실제 열람권 개수 연동
+  const [isUsingTicket, setIsUsingTicket] = useState(false)
+  const ticketCount = profile.ticketCount
   const {
     todayQuestion,
     pastQuestions,
@@ -71,10 +75,10 @@ export default function QuestionsPage() {
     : pastQuestions
 
   const handleQuestionClick = (question: Question) => {
-    const hasVoted = hasUserVoted(question.id)
-    const isClosedWithoutVote = question.status === "CLOSED" && !hasVoted
+    const canView = question.canViewResults ?? hasUserVoted(question.id)
+    const isClosedWithoutAccess = question.status === "CLOSED" && !canView
 
-    if (isClosedWithoutVote) {
+    if (isClosedWithoutAccess) {
       setSelectedClosedQuestion(question)
       setShowTicketModal(true)
     } else {
@@ -82,13 +86,23 @@ export default function QuestionsPage() {
     }
   }
 
-  const handleUseTicket = () => {
-    if (selectedClosedQuestion && ticketCount > 0) {
-      // TODO: 열람권 사용 API 호출
+  const handleUseTicket = async () => {
+    if (!selectedClosedQuestion || ticketCount === 0) return
+
+    try {
+      setIsUsingTicket(true)
+      await ticketsApi.useTicket(Number(selectedClosedQuestion.id))
+      // 열람권 사용 후 프로필 갱신 (ticketCount 업데이트)
+      fetchProfile()
       router.push(`/questions/${selectedClosedQuestion.id}`)
+    } catch (error) {
+      console.error("열람권 사용 실패:", error)
+      // TODO: 에러 토스트 표시
+    } finally {
+      setIsUsingTicket(false)
+      setShowTicketModal(false)
+      setSelectedClosedQuestion(null)
     }
-    setShowTicketModal(false)
-    setSelectedClosedQuestion(null)
   }
 
   const handlePullRefresh = useCallback(async () => {
@@ -115,7 +129,7 @@ export default function QuestionsPage() {
               className={`rounded-lg bg-card transition-all duration-200
                 ${
                   question.isToday
-                    ? "border-2 border-primary/60"
+                    ? "border-2 border-primary/40"
                     : "border border-border"
                 }`}
             >
@@ -195,14 +209,23 @@ export default function QuestionsPage() {
               <div className="flex flex-col gap-2 w-full">
                 <button
                   onClick={handleUseTicket}
-                  disabled={ticketCount === 0}
+                  disabled={ticketCount === 0 || isUsingTicket}
                   className={`w-full py-3 px-4 rounded-xl font-medium text-[15px] active:scale-95 transition-transform ${
-                    ticketCount > 0
+                    ticketCount > 0 && !isUsingTicket
                       ? "bg-primary/60 text-white"
                       : "bg-muted text-muted-foreground cursor-not-allowed"
                   }`}
                 >
-                  {ticketCount > 0 ? "열람권 사용하기" : "열람권이 없어요"}
+                  {isUsingTicket ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+                      사용 중...
+                    </span>
+                  ) : ticketCount > 0 ? (
+                    "열람권 사용하기"
+                  ) : (
+                    "열람권이 없어요"
+                  )}
                 </button>
                 <button
                   onClick={() => {
