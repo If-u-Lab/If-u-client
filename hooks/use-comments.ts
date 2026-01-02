@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef } from "react"
+import { toast } from "sonner"
 import { Comment } from "@/types/entities"
 import type { CommentResponse, CommentReplyResponse } from "@/types/api"
 import * as commentsApi from "@/lib/api/comments"
@@ -165,18 +166,13 @@ export function useComments(questionId: string) {
       })
 
       const newReply = toComment(response.data)
-      // replies 배열이 빈 배열로 오므로, toReplyComment 형태로 변환
-      const replyComment: Comment = {
-        ...newReply,
-        parentId,
-      }
 
       setComments((prev) =>
         prev.map((comment) => {
           if (comment.id === parentId) {
             return {
               ...comment,
-              replies: [...comment.replies, replyComment],
+              replies: [...comment.replies, newReply],
             }
           }
           return comment
@@ -335,10 +331,9 @@ export function useComments(questionId: string) {
   const reportComment = useCallback(async (commentId: string) => {
     try {
       await commentsApi.reportComment(Number(commentId))
-      // 신고 성공 알림 (추후 토스트로 대체)
-      alert("신고가 접수되었습니다")
+      toast.success("신고가 접수되었습니다")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "신고에 실패했습니다")
+      toast.error("신고에 실패했습니다")
     }
   }, [])
 

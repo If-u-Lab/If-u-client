@@ -1,5 +1,7 @@
 // 백엔드 API 응답 타입 정의
 
+import type { CommentDeletedBy } from "./entities"
+
 /**
  * 질문 상태
  */
@@ -145,11 +147,6 @@ export interface TicketUseResponse {
   questionId: number
   remainingTickets: number
 }
-
-/**
- * 댓글 삭제 주체
- */
-export type CommentDeletedBy = "USER" | "ADMIN" | null
 
 /**
  * 대댓글 응답
