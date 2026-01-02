@@ -1,25 +1,18 @@
 "use client"
 
-import { useEffect, useRef, useCallback, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef, useCallback } from "react"
 import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { PullToRefresh } from "@/components/pull-to-refresh"
+import { TicketModal } from "@/components/ticket-modal"
 import { useQuestionsContext } from "@/contexts/questions-context"
 import { useAuthContext } from "@/contexts/auth-context"
-import { useUserProfile } from "@/hooks/use-user-profile"
-import { ChatBubbleOvalLeftEllipsisIcon, TicketIcon } from "@heroicons/react/24/outline"
-import * as ticketsApi from "@/lib/api/tickets"
+import { useTicketModal } from "@/hooks/use-ticket-modal"
+import { ChatBubbleOvalLeftEllipsisIcon } from "@heroicons/react/24/outline"
 import type { Question } from "@/types/entities"
 
 export default function QuestionsPage() {
-  const router = useRouter()
   const { isLoading: authLoading } = useAuthContext()
-  const { profile, fetchProfile } = useUserProfile()
-  const [showTicketModal, setShowTicketModal] = useState(false)
-  const [selectedClosedQuestion, setSelectedClosedQuestion] = useState<Question | null>(null)
-  const [isUsingTicket, setIsUsingTicket] = useState(false)
-  const ticketCount = profile.ticketCount
   const {
     todayQuestion,
     pastQuestions,
@@ -35,6 +28,15 @@ export default function QuestionsPage() {
     refreshQuestion,
     refreshingId,
   } = useQuestionsContext()
+
+  const {
+    showModal,
+    isUsing,
+    ticketCount,
+    closeModal,
+    useTicket,
+    handleQuestionClick: handleTicketQuestionClick,
+  } = useTicketModal()
 
   // 무한스크롤을 위한 observer ref
   const observerTarget = useRef<HTMLDivElement>(null)
@@ -75,34 +77,7 @@ export default function QuestionsPage() {
     : pastQuestions
 
   const handleQuestionClick = (question: Question) => {
-    const canView = question.canViewResults ?? hasUserVoted(question.id)
-    const isClosedWithoutAccess = question.status === "CLOSED" && !canView
-
-    if (isClosedWithoutAccess) {
-      setSelectedClosedQuestion(question)
-      setShowTicketModal(true)
-    } else {
-      router.push(`/questions/${question.id}`)
-    }
-  }
-
-  const handleUseTicket = async () => {
-    if (!selectedClosedQuestion || ticketCount === 0) return
-
-    try {
-      setIsUsingTicket(true)
-      await ticketsApi.useTicket(Number(selectedClosedQuestion.id))
-      // 열람권 사용 후 프로필 갱신 (ticketCount 업데이트)
-      fetchProfile()
-      router.push(`/questions/${selectedClosedQuestion.id}`)
-    } catch (error) {
-      console.error("열람권 사용 실패:", error)
-      // TODO: 에러 토스트 표시
-    } finally {
-      setIsUsingTicket(false)
-      setShowTicketModal(false)
-      setSelectedClosedQuestion(null)
-    }
+    handleTicketQuestionClick(question, hasUserVoted(question.id))
   }
 
   const handlePullRefresh = useCallback(async () => {
@@ -175,72 +150,14 @@ export default function QuestionsPage() {
         </div>
       )}
 
+      <TicketModal
+        isOpen={showModal}
+        ticketCount={ticketCount}
+        isUsing={isUsing}
+        onUse={useTicket}
+        onClose={closeModal}
+      />
     </div>
-
-      {/* 열람권 사용 확인 모달 */}
-      {showTicketModal && selectedClosedQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* 배경 오버레이 */}
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => {
-              setShowTicketModal(false)
-              setSelectedClosedQuestion(null)
-            }}
-          />
-
-          {/* 모달 */}
-          <div className="relative bg-card rounded-2xl border border-border p-6 mx-5 max-w-sm w-full shadow-xl">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <TicketIcon className="w-7 h-7 text-primary" />
-              </div>
-
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                열람권을 사용하시겠어요?
-              </h3>
-              <p className="text-sm text-muted-foreground mb-1">
-                종료된 질문의 결과를 확인할 수 있어요
-              </p>
-              <p className="text-sm text-muted-foreground mb-6">
-                보유 열람권: <span className="font-semibold text-primary">{ticketCount}개</span>
-              </p>
-
-              <div className="flex flex-col gap-2 w-full">
-                <button
-                  onClick={handleUseTicket}
-                  disabled={ticketCount === 0 || isUsingTicket}
-                  className={`w-full py-3 px-4 rounded-xl font-medium text-[15px] active:scale-95 transition-transform ${
-                    ticketCount > 0 && !isUsingTicket
-                      ? "bg-primary/60 text-white"
-                      : "bg-muted text-muted-foreground cursor-not-allowed"
-                  }`}
-                >
-                  {isUsingTicket ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
-                      사용 중...
-                    </span>
-                  ) : ticketCount > 0 ? (
-                    "열람권 사용하기"
-                  ) : (
-                    "열람권이 없어요"
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowTicketModal(false)
-                    setSelectedClosedQuestion(null)
-                  }}
-                  className="w-full py-3 px-4 bg-muted text-muted-foreground rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </PullToRefresh>
   )
 }
