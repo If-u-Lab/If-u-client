@@ -88,7 +88,7 @@ messaging.onBackgroundMessage((payload) => {
   const data = payload.data || {};
   const notificationTitle = data.title || payload.notification?.title || '새로운 질문';
   const notificationBody = data.body || payload.notification?.body || '오늘의 질문이 등록되었습니다';
-  const redirectPath = data.redirectPath || '/home'; // 백엔드가 보내는 리다이렉트 경로
+  const redirectPath = data.redirect_path || data.redirectPath || '/home';
 
   const notificationOptions = {
     body: notificationBody,
@@ -99,10 +99,9 @@ messaging.onBackgroundMessage((payload) => {
     data: { ...data, redirectPath }, // 클릭 시 사용할 데이터 저장
   };
 
-  // notification 필드가 있으면 Firebase가 이미 자동 알림 생성했으므로 중복 방지
-  if (!payload.notification) {
-    self.registration.showNotification(notificationTitle, notificationOptions);
-  }
+  // 항상 직접 알림을 생성 (redirectPath를 포함하기 위해)
+  // payload.notification이 있어도 무시하고 data 기반으로 알림 생성
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // 알림 클릭 시 페이지 이동
@@ -110,17 +109,24 @@ self.addEventListener('notificationclick', (event) => {
   console.log('알림 클릭:', event);
   event.notification.close();
 
-  const redirectPath = event.notification.data?.redirectPath || '/home';
+  // 백엔드가 snake_case(redirect_path) 또는 camelCase(redirectPath) 둘 다 지원
+  const redirectPath = event.notification.data?.redirect_path || event.notification.data?.redirectPath || '/home';
+  console.log('리다이렉트 경로:', redirectPath);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 이미 열린 창이 있으면 focus 후 CustomEvent로 React Router에 위임
-      for (const client of clientList) {
-        if ('focus' in client) {
-          return client.focus().then((c) => c.navigate(redirectPath));
-        }
+      // 이미 열린 창이 있으면 focus 후 postMessage로 React Router에 위임
+      if (clientList.length > 0) {
+        const client = clientList[0];
+        client.focus();
+        client.postMessage({
+          type: 'FCM_NAVIGATE',
+          redirectPath: redirectPath
+        });
+        return Promise.resolve();
       }
-      // 열린 창이 없으면 새 창 열기 (초기 진입이므로 window.location 사용)
+
+      // 열린 창이 없으면 새 창 열기
       if (clients.openWindow) {
         return clients.openWindow(redirectPath);
       }
