@@ -126,9 +126,12 @@ self.addEventListener('notificationclick', (event) => {
         return Promise.resolve();
       }
 
-      // 열린 창이 없으면 새 창 열기
+      // 열린 창이 없으면 새 창 열기 (절대 URL 필요)
+      const fullUrl = new URL(redirectPath, self.location.origin).href;
+      console.log('새 창 열기:', fullUrl);
+
       if (clients.openWindow) {
-        return clients.openWindow(redirectPath);
+        return clients.openWindow(fullUrl);
       }
     })
   );
