@@ -163,7 +163,8 @@ export const onForegroundMessage = async () => {
     const data = payload.data || {};
     const notificationTitle = data.title || payload.notification?.title || "새로운 질문";
     const notificationBody = data.body || payload.notification?.body || "오늘의 질문이 등록되었습니다";
-    const redirectPath = data.redirectPath || "/home"; // 백엔드가 보내는 리다이렉트 경로
+    // 백엔드가 snake_case(redirect_path) 또는 camelCase(redirectPath) 둘 다 지원
+    const redirectPath = data.redirect_path || data.redirectPath || "/home";
 
     if (Notification.permission === "granted") {
       const notification = new Notification(notificationTitle, {

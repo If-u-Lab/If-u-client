@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch"
 import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { updateNotificationSettings } from "@/lib/notification-api"
+import { updateDeviceNotificationSettings } from "@/lib/notification-api"
+import { getOrCreateDeviceId } from "@/src/lib/fcmTokenManager"
 import { toast } from "sonner"
 
 export default function SettingsPage() {
