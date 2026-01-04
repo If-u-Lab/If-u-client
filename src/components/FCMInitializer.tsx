@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { requestFCMToken, onForegroundMessage, setupTokenRefreshListener } from '@/src/lib/fcmTokenManager';
+import { FCM_CUSTOM_EVENTS, FCM_MESSAGE_TYPES } from '@/src/lib/fcmConstants';
 import { useAuthContext } from '@/contexts/auth-context';
 
 export default function FCMInitializer() {
@@ -18,17 +19,17 @@ export default function FCMInitializer() {
       router.push(redirectPath);
     };
 
-    window.addEventListener('fcm-navigate', handleFCMNavigate);
+    window.addEventListener(FCM_CUSTOM_EVENTS.NAVIGATE, handleFCMNavigate);
 
     return () => {
-      window.removeEventListener('fcm-navigate', handleFCMNavigate);
+      window.removeEventListener(FCM_CUSTOM_EVENTS.NAVIGATE, handleFCMNavigate);
     };
   }, [router]);
 
   // 백그라운드 알림 클릭 시 라우팅 처리 (Service Worker postMessage)
   useEffect(() => {
     const handleServiceWorkerMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'FCM_NAVIGATE') {
+      if (event.data?.type === FCM_MESSAGE_TYPES.NAVIGATE) {
         const redirectPath = event.data.redirectPath;
         console.log('Service Worker 알림 클릭 - 페이지 이동:', redirectPath);
         router.push(redirectPath);

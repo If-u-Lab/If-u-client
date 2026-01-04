@@ -1,6 +1,12 @@
 importScripts('https://www.gstatic.com/firebasejs/12.5.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/12.5.0/firebase-messaging-compat.js');
 
+// FCM 상수 정의
+const FCM_MESSAGE_TYPES = {
+  TOKEN_REFRESHED: 'FCM_TOKEN_REFRESHED',
+  NAVIGATE: 'FCM_NAVIGATE',
+};
+
 // PWA 캐시 이름
 const CACHE_NAME = 'if-u-v1';
 const STATIC_ASSETS = [
@@ -93,7 +99,7 @@ messaging.onTokenRefresh(async () => {
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       clients.forEach(client => {
         client.postMessage({
-          type: 'FCM_TOKEN_REFRESHED',
+          type: FCM_MESSAGE_TYPES.TOKEN_REFRESHED,
           token: newToken
         });
       });
@@ -143,7 +149,7 @@ self.addEventListener('notificationclick', (event) => {
         const client = clientList[0];
         client.focus();
         client.postMessage({
-          type: 'FCM_NAVIGATE',
+          type: FCM_MESSAGE_TYPES.NAVIGATE,
           redirectPath: redirectPath
         });
         return Promise.resolve();
