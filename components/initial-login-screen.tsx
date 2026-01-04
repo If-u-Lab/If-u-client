@@ -44,7 +44,7 @@ export function InitialLoginScreen({ onStartOnboarding }: InitialLoginScreenProp
         <div className="pt-4">
           <Button
             onClick={onStartOnboarding}
-            className="w-full h-14 bg-white text-primary active:scale-95 font-bold text-lg shadow-2xl shadow-black/20 transition-transform"
+            className="w-full h-14 bg-white text-primary hover:!bg-white/90 active:scale-95 font-bold text-lg shadow-2xl shadow-black/20 transition-all"
           >
             시작하기
           </Button>
