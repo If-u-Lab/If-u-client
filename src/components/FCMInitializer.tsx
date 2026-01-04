@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { requestFCMToken, onForegroundMessage } from '@/src/lib/fcmTokenManager';
+import { requestFCMToken, onForegroundMessage, setupTokenRefreshListener } from '@/src/lib/fcmTokenManager';
 import { useAuthContext } from '@/contexts/auth-context';
 
 export default function FCMInitializer() {
@@ -54,6 +54,7 @@ export default function FCMInitializer() {
     }
 
     let unsubscribe: (() => void) | null = null;
+    let cleanupTokenRefresh: (() => void) | null = null;
 
     // FCM 초기화 (Service Worker 등록 후 토큰 발급)
     const initFCM = async () => {
@@ -81,7 +82,12 @@ export default function FCMInitializer() {
 
         if (token) {
           console.log('FCM 초기화 완료');
+
+          // 포그라운드 메시지 리스너 등록
           unsubscribe = await onForegroundMessage();
+
+          // 토큰 갱신 리스너 등록
+          cleanupTokenRefresh = await setupTokenRefreshListener(accessToken);
         } else {
           console.log('FCM 초기화 실패 (권한 거부 또는 미지원 브라우저)');
         }
@@ -97,6 +103,9 @@ export default function FCMInitializer() {
     return () => {
       if (unsubscribe) {
         unsubscribe();
+      }
+      if (cleanupTokenRefresh) {
+        cleanupTokenRefresh();
       }
     };
   }, [accessToken, isAuthenticated]);

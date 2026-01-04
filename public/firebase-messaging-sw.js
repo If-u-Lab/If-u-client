@@ -80,6 +80,29 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// FCM 토큰 갱신 감지 (Service Worker)
+messaging.onTokenRefresh(async () => {
+  try {
+    console.log('FCM 토큰 갱신 이벤트 발생');
+    const newToken = await messaging.getToken();
+
+    if (newToken) {
+      console.log('새로운 FCM 토큰:', newToken);
+
+      // 클라이언트에 토큰 갱신 알림
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'FCM_TOKEN_REFRESHED',
+          token: newToken
+        });
+      });
+    }
+  } catch (error) {
+    console.error('토큰 갱신 중 오류:', error);
+  }
+});
+
 // 백그라운드 푸시 알림 수신
 messaging.onBackgroundMessage((payload) => {
   console.log('백그라운드 메시지 수신:', payload);
