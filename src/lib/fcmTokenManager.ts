@@ -88,6 +88,8 @@ export const requestFCMToken = async (accessToken?: string | null) => {
 
       if (token) {
         console.log("FCM 토큰 발급 성공:", token);
+        // localStorage에 토큰 저장 (갱신 감지용)
+        localStorage.setItem("fcm_token", token);
         await saveTokenToServer(token, accessToken);
         return token;
       } else {
@@ -182,4 +184,68 @@ export const onForegroundMessage = async () => {
   });
 
   return unsubscribe;
+};
+
+/**
+ * FCM 토큰 갱신 리스너 등록
+ * 토큰이 자동으로 갱신되는 경우:
+ * 1. 앱이 백업에서 복원된 경우
+ * 2. 사용자가 앱 데이터를 삭제한 경우
+ * 3. 사용자가 앱을 재설치한 경우
+ * 4. Firebase에서 보안상의 이유로 토큰을 갱신한 경우
+ */
+export const setupTokenRefreshListener = async (accessToken?: string | null) => {
+  try {
+    const messagingInstance = await messaging();
+    if (!messagingInstance) {
+      console.log("Firebase Messaging 초기화 실패 - 토큰 갱신 리스너 등록 불가");
+      return null;
+    }
+
+    // Service Worker 메시지 리스너 등록 (토큰 갱신 감지)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', async (event) => {
+        if (event.data?.type === 'FCM_TOKEN_REFRESHED') {
+          const newToken = event.data.token;
+          console.log("FCM 토큰 갱신 감지:", newToken);
+
+          // 서버에 새 토큰 업데이트
+          await saveTokenToServer(newToken, accessToken);
+        }
+      });
+
+      console.log("FCM 토큰 갱신 리스너 등록 완료");
+    }
+
+    // 주기적으로 토큰 검증 및 갱신 (10분마다)
+    // Firebase onTokenRefresh가 놓칠 수 있는 edge case 대비
+    const tokenRefreshInterval = setInterval(async () => {
+      try {
+        const currentToken = await getToken(messagingInstance, {
+          vapidKey: VAPID_KEY,
+        });
+
+        if (currentToken) {
+          // localStorage에 저장된 마지막 토큰과 비교
+          const lastToken = localStorage.getItem("fcm_token");
+
+          if (lastToken !== currentToken) {
+            console.log("FCM 토큰 변경 감지 (주기적 검증) - 서버 업데이트");
+            localStorage.setItem("fcm_token", currentToken);
+            await saveTokenToServer(currentToken, accessToken);
+          }
+        }
+      } catch (error: any) {
+        console.error("토큰 갱신 검증 실패:", error?.message || error);
+      }
+    }, 10 * 60 * 1000); // 10분 (600초)
+
+    // Cleanup 함수 반환
+    return () => {
+      clearInterval(tokenRefreshInterval);
+    };
+  } catch (error: any) {
+    console.error("토큰 갱신 리스너 등록 실패:", error?.message || error);
+    return null;
+  }
 };
