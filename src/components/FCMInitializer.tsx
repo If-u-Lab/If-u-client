@@ -62,20 +62,40 @@ export default function FCMInitializer() {
       try {
         console.log('FCM 초기화 시작');
 
-        // 1. Service Worker 먼저 등록하고 완료 대기
+        // 1. Service Worker 먼저 등록하고 활성화 대기
         if ('serviceWorker' in navigator) {
           console.log('Service Worker 등록 시도');
           const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
           console.log('Service Worker 등록 성공:', registration);
 
-          // Service Worker가 활성화될 때까지 대기
+          // Service Worker가 활성화될 때까지 명시적으로 대기
           if (registration.installing) {
             console.log('Service Worker 설치 중...');
+            await new Promise<void>((resolve) => {
+              registration.installing!.addEventListener('statechange', (e) => {
+                if ((e.target as ServiceWorker).state === 'activated') {
+                  console.log('Service Worker 활성화 완료');
+                  resolve();
+                }
+              });
+            });
           } else if (registration.waiting) {
             console.log('Service Worker 대기 중...');
+            await new Promise<void>((resolve) => {
+              registration.waiting!.addEventListener('statechange', (e) => {
+                if ((e.target as ServiceWorker).state === 'activated') {
+                  console.log('Service Worker 활성화 완료');
+                  resolve();
+                }
+              });
+            });
           } else if (registration.active) {
-            console.log('Service Worker 활성화됨');
+            console.log('Service Worker 이미 활성화됨');
           }
+
+          // Service Worker가 완전히 준비될 때까지 추가 대기
+          await navigator.serviceWorker.ready;
+          console.log('Service Worker 준비 완료');
         }
 
         // 2. Service Worker 준비 완료 후 FCM 토큰 요청

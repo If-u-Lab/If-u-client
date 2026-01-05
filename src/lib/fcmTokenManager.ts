@@ -2,7 +2,6 @@ import { messaging } from "./settingFCM";
 import { getToken, onMessage } from "firebase/messaging";
 import {
   FCM_TOKEN_STORAGE_KEY,
-  FCM_MESSAGE_TYPES,
   FCM_CUSTOM_EVENTS,
   FCM_TOKEN_REFRESH_INTERVAL
 } from "./fcmConstants";
@@ -80,6 +79,18 @@ export const requestFCMToken = async (accessToken?: string | null) => {
 
     if (permission === "granted") {
       console.log("알림 권한 허용됨 - FCM 토큰 발급 시작");
+
+      // Service Worker가 완전히 활성화될 때까지 대기
+      if ('serviceWorker' in navigator) {
+        try {
+          console.log("Service Worker 활성화 대기 중...");
+          await navigator.serviceWorker.ready;
+          console.log("Service Worker 활성화 완료");
+        } catch (error) {
+          console.error("Service Worker 대기 중 오류:", error);
+          return null;
+        }
+      }
 
       // messaging 함수 실행해서 객체 가져오기
       const messagingInstance = await messaging();
@@ -194,11 +205,6 @@ export const onForegroundMessage = async () => {
 
 /**
  * FCM 토큰 갱신 리스너 등록
- * 토큰이 자동으로 갱신되는 경우:
- * 1. 앱이 백업에서 복원된 경우
- * 2. 사용자가 앱 데이터를 삭제한 경우
- * 3. 사용자가 앱을 재설치한 경우
- * 4. Firebase에서 보안상의 이유로 토큰을 갱신한 경우
  */
 export const setupTokenRefreshListener = async (accessToken?: string | null) => {
   try {
@@ -208,24 +214,9 @@ export const setupTokenRefreshListener = async (accessToken?: string | null) => 
       return null;
     }
 
-    const handleServiceWorkerMessage = async (event: MessageEvent) => {
-      if (event.data?.type === FCM_MESSAGE_TYPES.TOKEN_REFRESHED) {
-        const newToken = event.data.token;
-        console.log("FCM 토큰 갱신 감지:", newToken);
-
-        // 서버에 새 토큰 업데이트
-        await saveTokenToServer(newToken, accessToken);
-      }
-    };
-
-    // Service Worker 메시지 리스너 등록 (토큰 갱신 감지)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-      console.log("FCM 토큰 갱신 리스너 등록 완료");
-    }
+    console.log("FCM 토큰 주기적 검증 시작 (10분 간격)");
 
     // 주기적으로 토큰 검증 및 갱신 (10분마다)
-    // Firebase onTokenRefresh가 놓칠 수 있는 edge case 대비
     const tokenRefreshInterval = setInterval(async () => {
       try {
         const currentToken = await getToken(messagingInstance, {
@@ -250,9 +241,7 @@ export const setupTokenRefreshListener = async (accessToken?: string | null) => 
     // Cleanup 함수 반환
     return () => {
       clearInterval(tokenRefreshInterval);
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
-      }
+      console.log("FCM 토큰 주기적 검증 중단");
     };
   } catch (error: any) {
     console.error("토큰 갱신 리스너 등록 실패:", error?.message || error);
