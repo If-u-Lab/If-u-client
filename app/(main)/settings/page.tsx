@@ -1,28 +1,141 @@
 "use client"
 
-import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline"
+import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon, ArrowRightOnRectangleIcon, BellIcon } from "@heroicons/react/24/outline"
 import { Switch } from "@/components/ui/switch"
 import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { updateDeviceNotificationSettings } from "@/lib/notification-api"
-import { getOrCreateDeviceId } from "@/src/lib/fcmTokenManager"
+import { getDeviceNotificationSettings, updateDeviceNotificationSettings } from "@/lib/notification-api"
+import { getOrCreateDeviceId, requestFCMToken, onForegroundMessage, setupTokenRefreshListener } from "@/src/lib/fcmTokenManager"
 import { toast } from "sonner"
 
 export default function SettingsPage() {
-  const { logout, deleteAccount, isAuthenticated, user } = useAuthContext()
+  const { logout, deleteAccount, isAuthenticated, user, accessToken } = useAuthContext()
   const router = useRouter()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [showPermissionModal, setShowPermissionModal] = useState(false)
+  const [isCheckingPermission, setIsCheckingPermission] = useState(false)
 
-  // 페이지 로드 시 브라우저 알림 권한 상태로 초기화
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setNotificationsEnabled(Notification.permission === "granted")
+  // 서버에서 알림 설정 조회 및 토글 동기화
+  const loadNotificationSettings = async () => {
+    try {
+      const deviceId = getOrCreateDeviceId()
+      const settings = await getDeviceNotificationSettings(deviceId)
+
+      // 서버의 실제 설정값으로 토글 동기화
+      setNotificationsEnabled(settings.notificationEnabled)
+      console.log("알림 설정 조회 성공:", settings.notificationEnabled)
+      return settings
+    } catch (error: any) {
+      const errorMessage = error?.message || "알림 설정 조회 실패"
+      console.error("알림 설정 조회 오류:", errorMessage, error)
+
+      // 실패 시 브라우저 권한 상태로 폴백
+      if (typeof window !== "undefined" && "Notification" in window) {
+        setNotificationsEnabled(Notification.permission === "granted")
+      }
+      return null
     }
+  }
+
+  // 페이지 로드 시 초기 조회
+  useEffect(() => {
+    loadNotificationSettings()
   }, [])
+
+  // 브라우저 권한 동기화 
+  useEffect(() => {
+    let isSyncing = false
+    let lastBrowserPermission = Notification.permission
+
+    const syncBrowserPermission = async () => {
+      if (!('Notification' in window) || isSyncing) return
+
+      isSyncing = true
+      try {
+        const deviceId = getOrCreateDeviceId()
+        const currentBrowserPermission = Notification.permission
+        const permissionChanged = lastBrowserPermission !== currentBrowserPermission
+
+        console.log('[권한 동기화] 브라우저 권한:', currentBrowserPermission, permissionChanged ? '(변경됨)' : '')
+
+        const serverSettings = await loadNotificationSettings()
+        if (!serverSettings) return
+
+        // 브라우저 권한 차단 + DB true → DB false로 업데이트
+        if (currentBrowserPermission === 'denied' && serverSettings.notificationEnabled) {
+          console.log('[권한 동기화] 브라우저 차단 → DB false 업데이트')
+          await updateDeviceNotificationSettings(deviceId, false)
+          setNotificationsEnabled(false)
+        }
+
+        // 브라우저 권한 허용 + DB false + 권한 변경됨 → DB true로 업데이트
+        if (currentBrowserPermission === 'granted' && !serverSettings.notificationEnabled && permissionChanged) {
+          console.log('[권한 동기화] 브라우저 허용 감지 → DB true 업데이트')
+          await updateDeviceNotificationSettings(deviceId, true)
+          setNotificationsEnabled(true)
+
+          if (showPermissionModal) {
+            setShowPermissionModal(false)
+            setIsCheckingPermission(false)
+            toast.success('알림이 활성화되었습니다')
+          }
+        }
+
+        lastBrowserPermission = currentBrowserPermission
+      } catch (error: any) {
+        console.error('[권한 동기화 실패]', error?.message || error)
+      } finally {
+        isSyncing = false
+      }
+    }
+
+    // 초기 동기화
+    syncBrowserPermission()
+
+    // 이벤트 리스너: 탭 전환, 창 포커스, Permissions API
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncBrowserPermission()
+    }
+    const handleWindowFocus = () => syncBrowserPermission()
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleWindowFocus)
+
+    if ('permissions' in navigator && 'query' in navigator.permissions) {
+      navigator.permissions.query({ name: 'notifications' as PermissionName })
+        .then((status) => status.addEventListener('change', syncBrowserPermission))
+        .catch(() => {})
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleWindowFocus)
+    }
+  }, [showPermissionModal, accessToken])
+
+  // 모달 열려있을 때 폴링 (폴백)
+  useEffect(() => {
+    if (!showPermissionModal) {
+      setIsCheckingPermission(false)
+      return
+    }
+
+    setIsCheckingPermission(true)
+
+    const pollInterval = setInterval(() => {
+      if (Notification.permission === 'granted') {
+        clearInterval(pollInterval)
+        setIsCheckingPermission(false)
+        loadNotificationSettings()
+      }
+    }, 200)
+
+    return () => clearInterval(pollInterval)
+  }, [showPermissionModal])
 
   // 알림 설정 토글 변경 핸들러
   const handleNotificationToggle = async (enabled: boolean) => {
@@ -32,46 +145,37 @@ export default function SettingsPage() {
       const deviceId = getOrCreateDeviceId()
 
       if (enabled) {
-        // 알림 켜기: 브라우저 권한 확인 후 서버 업데이트
-        console.log("알림 권한 확인 중...")
         const currentPermission = Notification.permission
 
         if (currentPermission === "granted") {
-          // 이미 권한이 허용되어 있으면 바로 API 호출
-          setNotificationsEnabled(true)
+          // 권한 허용됨 → DB 업데이트
           await updateDeviceNotificationSettings(deviceId, true)
-          console.log("알림 설정 업데이트 성공: true (기존 권한 사용)")
+          setNotificationsEnabled(true)
         } else if (currentPermission === "denied") {
-          // 권한이 차단된 경우 - 브라우저 설정에서 변경하도록 안내
-          setNotificationsEnabled(false)
-          alert("브라우저 알림이 차단되어 있습니다.\n\n브라우저 주소창 왼쪽의 자물쇠 아이콘을 클릭하여 알림 권한을 허용해주세요.")
-          console.log("알림 권한이 차단되어 있음 (denied)")
+          // 권한 차단됨 → 안내 모달 표시
+          setShowPermissionModal(true)
         } else {
-          // 권한이 아직 결정되지 않은 경우 (default) - 권한 요청
+          // 권한 미결정 → 권한 요청
           const permission = await Notification.requestPermission()
-          console.log("사용자 선택:", permission)
 
           if (permission === "granted") {
-            // 권한 허용 시
-            setNotificationsEnabled(true)
+            const token = await requestFCMToken(accessToken)
+            if (token) {
+              await onForegroundMessage()
+              await setupTokenRefreshListener(accessToken)
+            }
             await updateDeviceNotificationSettings(deviceId, true)
-            console.log("알림 설정 업데이트 성공: true (새 권한 허용)")
-          } else {
-            // 권한 거부 시
-            setNotificationsEnabled(false)
-            console.log("사용자가 알림 권한을 거부했습니다")
+            setNotificationsEnabled(true)
           }
         }
       } else {
-        // 알림 끄기: 서버에 알림 비활성화 요청
-        setNotificationsEnabled(false)
+        // 알림 끄기
         await updateDeviceNotificationSettings(deviceId, false)
-        console.log("알림 설정 업데이트 성공: false")
+        setNotificationsEnabled(false)
       }
     } catch (error: any) {
       const errorMessage = error?.message || "알림 설정 업데이트에 실패했습니다"
       console.error("알림 설정 업데이트 실패:", errorMessage, error)
-      // 실패 시 원래 상태로 복구
       setNotificationsEnabled(!enabled)
       toast.error(errorMessage)
     } finally {
@@ -178,6 +282,76 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* 알림 권한 안내 모달 */}
+      {showPermissionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* 배경 오버레이 */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowPermissionModal(false)}
+          />
+
+          {/* 모달 */}
+          <div className="relative bg-card rounded-2xl border border-border p-6 mx-5 max-w-sm w-full shadow-xl">
+            <div className="flex flex-col items-center text-center">
+              {/* 아이콘 */}
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <BellIcon className="w-8 h-8 text-primary" />
+              </div>
+
+              {/* 제목 */}
+              <h3 className="text-lg font-semibold text-foreground mb-6">
+                알림 권한이 차단되어 있어요
+              </h3>
+
+              {/* 안내 단계 */}
+              <div className="w-full bg-muted/30 rounded-xl p-4 mb-4 text-left space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs font-semibold text-primary">1</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">
+                      주소창 왼쪽의 <strong className="text-primary">자물쇠 아이콘</strong>을 클릭하세요
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs font-semibold text-primary">2</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">
+                      <strong className="text-primary">알림</strong> 항목을 찾아 <strong className="text-primary">허용</strong>으로 변경하세요
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs font-semibold text-primary">3</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">
+                      이 페이지로 돌아오면 자동으로 적용됩니다
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 버튼 */}
+              <button
+                onClick={() => setShowPermissionModal(false)}
+                className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:opacity-70 transition-opacity"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 회원탈퇴 확인 모달 */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -205,14 +379,14 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setShowDeleteModal(false)}
                   disabled={isDeleting}
-                  className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform disabled:opacity-50"
+                  className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:opacity-70 transition-opacity disabled:opacity-50"
                 >
                   계속 함께하기
                 </button>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={isDeleting}
-                  className="w-full py-3 px-4 bg-muted text-muted-foreground rounded-xl font-medium text-[15px] active:scale-95 transition-transform disabled:opacity-50"
+                  className="w-full py-3 px-4 bg-muted text-muted-foreground rounded-xl font-medium text-[15px] active:opacity-70 transition-opacity disabled:opacity-50"
                 >
                   {isDeleting ? "탈퇴 중..." : "그래도 탈퇴할게요"}
                 </button>

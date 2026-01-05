@@ -1,6 +1,12 @@
 importScripts('https://www.gstatic.com/firebasejs/12.5.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/12.5.0/firebase-messaging-compat.js');
 
+// FCM 상수 정의
+const FCM_MESSAGE_TYPES = {
+  TOKEN_REFRESHED: 'FCM_TOKEN_REFRESHED',
+  NAVIGATE: 'FCM_NAVIGATE',
+};
+
 // PWA 캐시 이름
 const CACHE_NAME = 'if-u-v1';
 const STATIC_ASSETS = [
@@ -44,6 +50,11 @@ self.addEventListener('activate', (event) => {
 
 // 네트워크 요청 가로채기 (캐시 우선 전략)
 self.addEventListener('fetch', (event) => {
+  // GET 요청만 캐싱 처리 (POST, DELETE 등은 제외)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       // 캐시에 있으면 캐시 반환, 없으면 네트워크 요청
@@ -79,29 +90,6 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-
-// FCM 토큰 갱신 감지 (Service Worker)
-messaging.onTokenRefresh(async () => {
-  try {
-    console.log('FCM 토큰 갱신 이벤트 발생');
-    const newToken = await messaging.getToken();
-
-    if (newToken) {
-      console.log('새로운 FCM 토큰:', newToken);
-
-      // 클라이언트에 토큰 갱신 알림
-      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'FCM_TOKEN_REFRESHED',
-          token: newToken
-        });
-      });
-    }
-  } catch (error) {
-    console.error('토큰 갱신 중 오류:', error);
-  }
-});
 
 // 백그라운드 푸시 알림 수신
 messaging.onBackgroundMessage((payload) => {
@@ -143,7 +131,7 @@ self.addEventListener('notificationclick', (event) => {
         const client = clientList[0];
         client.focus();
         client.postMessage({
-          type: 'FCM_NAVIGATE',
+          type: FCM_MESSAGE_TYPES.NAVIGATE,
           redirectPath: redirectPath
         });
         return Promise.resolve();
