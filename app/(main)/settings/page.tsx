@@ -28,6 +28,7 @@ export default function SettingsPage() {
       // 서버의 실제 설정값으로 토글 동기화
       setNotificationsEnabled(settings.notificationEnabled)
       console.log("알림 설정 조회 성공:", settings.notificationEnabled)
+      return settings
     } catch (error: any) {
       const errorMessage = error?.message || "알림 설정 조회 실패"
       console.error("알림 설정 조회 오류:", errorMessage, error)
@@ -36,6 +37,7 @@ export default function SettingsPage() {
       if (typeof window !== "undefined" && "Notification" in window) {
         setNotificationsEnabled(Notification.permission === "granted")
       }
+      return null
     }
   }
 
@@ -44,10 +46,10 @@ export default function SettingsPage() {
     loadNotificationSettings()
   }, [])
 
-  // 페이지 포커스 시 DB 값 조회하여 토글 동기화 + 브라우저 권한 동기화
+  // 브라우저 권한 동기화 
   useEffect(() => {
     let isSyncing = false
-    let lastBrowserPermission = Notification.permission // 이전 브라우저 권한 상태 저장
+    let lastBrowserPermission = Notification.permission
 
     const syncBrowserPermission = async () => {
       if (!('Notification' in window) || isSyncing) return
@@ -60,9 +62,8 @@ export default function SettingsPage() {
 
         console.log('[권한 동기화] 브라우저 권한:', currentBrowserPermission, permissionChanged ? '(변경됨)' : '')
 
-        // DB 값 조회 (loadNotificationSettings가 setNotificationsEnabled 호출)
-        await loadNotificationSettings()
-        const serverSettings = await getDeviceNotificationSettings(deviceId)
+        const serverSettings = await loadNotificationSettings()
+        if (!serverSettings) return
 
         // 브라우저 권한 차단 + DB true → DB false로 업데이트
         if (currentBrowserPermission === 'denied' && serverSettings.notificationEnabled) {
@@ -95,7 +96,7 @@ export default function SettingsPage() {
     // 초기 동기화
     syncBrowserPermission()
 
-    // 이벤트 리스너: 탭 전환, 창 포커스 시 동기화
+    // 이벤트 리스너: 탭 전환, 창 포커스, Permissions API
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') syncBrowserPermission()
     }
@@ -104,35 +105,37 @@ export default function SettingsPage() {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleWindowFocus)
 
-    // Permissions API로 권한 변경 즉각 감지 (지원 브라우저)
     if ('permissions' in navigator && 'query' in navigator.permissions) {
       navigator.permissions.query({ name: 'notifications' as PermissionName })
         .then((status) => status.addEventListener('change', syncBrowserPermission))
         .catch(() => {})
     }
 
-    // 모달 열려있을 때만 폴링 (폴백)
-    let pollInterval: NodeJS.Timeout | null = null
-    if (showPermissionModal) {
-      setIsCheckingPermission(true)
-
-      pollInterval = setInterval(() => {
-        if (Notification.permission === 'granted' && !isSyncing) {
-          clearInterval(pollInterval!)
-          setIsCheckingPermission(false)
-          syncBrowserPermission()
-        }
-      }, 200)
-    } else {
-      setIsCheckingPermission(false)
-    }
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleWindowFocus)
-      if (pollInterval) clearInterval(pollInterval)
     }
   }, [showPermissionModal, accessToken])
+
+  // 모달 열려있을 때 폴링 (폴백)
+  useEffect(() => {
+    if (!showPermissionModal) {
+      setIsCheckingPermission(false)
+      return
+    }
+
+    setIsCheckingPermission(true)
+
+    const pollInterval = setInterval(() => {
+      if (Notification.permission === 'granted') {
+        clearInterval(pollInterval)
+        setIsCheckingPermission(false)
+        loadNotificationSettings()
+      }
+    }, 200)
+
+    return () => clearInterval(pollInterval)
+  }, [showPermissionModal])
 
   // 알림 설정 토글 변경 핸들러
   const handleNotificationToggle = async (enabled: boolean) => {
