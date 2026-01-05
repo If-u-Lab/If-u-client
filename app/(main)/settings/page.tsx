@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon, ArrowRightOnRectangleIcon, BellIcon, Cog6ToothIcon } from "@heroicons/react/24/outline"
+import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon, ArrowRightOnRectangleIcon, BellIcon } from "@heroicons/react/24/outline"
 import { Switch } from "@/components/ui/switch"
 import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
@@ -19,33 +19,35 @@ export default function SettingsPage() {
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [isCheckingPermission, setIsCheckingPermission] = useState(false)
 
-  // 페이지 로드 시 서버에서 알림 설정 조회
-  useEffect(() => {
-    const loadNotificationSettings = async () => {
-      try {
-        const deviceId = getOrCreateDeviceId()
-        const settings = await getDeviceNotificationSettings(deviceId)
+  // 서버에서 알림 설정 조회 및 토글 동기화
+  const loadNotificationSettings = async () => {
+    try {
+      const deviceId = getOrCreateDeviceId()
+      const settings = await getDeviceNotificationSettings(deviceId)
 
-        // 서버의 실제 설정값으로 초기화
-        setNotificationsEnabled(settings.notificationEnabled)
-        console.log("알림 설정 조회 성공:", settings.notificationEnabled)
-      } catch (error: any) {
-        const errorMessage = error?.message || "알림 설정 조회 실패"
-        console.error("알림 설정 조회 오류:", errorMessage, error)
+      // 서버의 실제 설정값으로 토글 동기화
+      setNotificationsEnabled(settings.notificationEnabled)
+      console.log("알림 설정 조회 성공:", settings.notificationEnabled)
+    } catch (error: any) {
+      const errorMessage = error?.message || "알림 설정 조회 실패"
+      console.error("알림 설정 조회 오류:", errorMessage, error)
 
-        // 실패 시 브라우저 권한 상태로 폴백
-        if (typeof window !== "undefined" && "Notification" in window) {
-          setNotificationsEnabled(Notification.permission === "granted")
-        }
+      // 실패 시 브라우저 권한 상태로 폴백
+      if (typeof window !== "undefined" && "Notification" in window) {
+        setNotificationsEnabled(Notification.permission === "granted")
       }
     }
+  }
 
+  // 페이지 로드 시 초기 조회
+  useEffect(() => {
     loadNotificationSettings()
   }, [])
 
-  // 페이지 포커스 시 브라우저 권한과 서버 상태 동기화
+  // 페이지 포커스 시 DB 값 조회하여 토글 동기화 + 브라우저 권한 동기화
   useEffect(() => {
     let isSyncing = false
+    let lastBrowserPermission = Notification.permission // 이전 브라우저 권한 상태 저장
 
     const syncBrowserPermission = async () => {
       if (!('Notification' in window) || isSyncing) return
@@ -53,32 +55,36 @@ export default function SettingsPage() {
       isSyncing = true
       try {
         const deviceId = getOrCreateDeviceId()
-        const browserGranted = Notification.permission === 'granted'
+        const currentBrowserPermission = Notification.permission
+        const permissionChanged = lastBrowserPermission !== currentBrowserPermission
+
+        console.log('[권한 동기화] 브라우저 권한:', currentBrowserPermission, permissionChanged ? '(변경됨)' : '')
+
+        // DB 값 조회 (loadNotificationSettings가 setNotificationsEnabled 호출)
+        await loadNotificationSettings()
         const serverSettings = await getDeviceNotificationSettings(deviceId)
 
-        // 브라우저 권한과 서버 상태가 불일치하면 동기화
-        if (browserGranted !== serverSettings.notificationEnabled) {
-          console.log('[권한 동기화]', browserGranted ? '허용됨' : '차단됨')
+        // 브라우저 권한 차단 + DB true → DB false로 업데이트
+        if (currentBrowserPermission === 'denied' && serverSettings.notificationEnabled) {
+          console.log('[권한 동기화] 브라우저 차단 → DB false 업데이트')
+          await updateDeviceNotificationSettings(deviceId, false)
+          setNotificationsEnabled(false)
+        }
 
-          // 권한 허용 시 FCM 토큰 재발급
-          if (browserGranted) {
-            const token = await requestFCMToken(accessToken)
-            if (token) {
-              await onForegroundMessage()
-              await setupTokenRefreshListener(accessToken)
-            }
-          }
+        // 브라우저 권한 허용 + DB false + 권한 변경됨 → DB true로 업데이트
+        if (currentBrowserPermission === 'granted' && !serverSettings.notificationEnabled && permissionChanged) {
+          console.log('[권한 동기화] 브라우저 허용 감지 → DB true 업데이트')
+          await updateDeviceNotificationSettings(deviceId, true)
+          setNotificationsEnabled(true)
 
-          await updateDeviceNotificationSettings(deviceId, browserGranted)
-          setNotificationsEnabled(browserGranted)
-
-          // 모달 자동 닫기
-          if (browserGranted && showPermissionModal) {
+          if (showPermissionModal) {
             setShowPermissionModal(false)
             setIsCheckingPermission(false)
             toast.success('알림이 활성화되었습니다')
           }
         }
+
+        lastBrowserPermission = currentBrowserPermission
       } catch (error: any) {
         console.error('[권한 동기화 실패]', error?.message || error)
       } finally {
@@ -89,23 +95,19 @@ export default function SettingsPage() {
     // 초기 동기화
     syncBrowserPermission()
 
-    // 페이지 포커스 시 동기화 (visibilitychange로 충분)
+    // 이벤트 리스너: 탭 전환, 창 포커스 시 동기화
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncBrowserPermission()
-      }
+      if (document.visibilityState === 'visible') syncBrowserPermission()
     }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
+    const handleWindowFocus = () => syncBrowserPermission()
 
-    // Permissions API로 즉각 감지 (지원 브라우저)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleWindowFocus)
+
+    // Permissions API로 권한 변경 즉각 감지 (지원 브라우저)
     if ('permissions' in navigator && 'query' in navigator.permissions) {
       navigator.permissions.query({ name: 'notifications' as PermissionName })
-        .then((status) => {
-          status.addEventListener('change', () => {
-            console.log('[Permissions API] 권한 변경:', status.state)
-            syncBrowserPermission()
-          })
-        })
+        .then((status) => status.addEventListener('change', syncBrowserPermission))
         .catch(() => {})
     }
 
@@ -127,6 +129,7 @@ export default function SettingsPage() {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleWindowFocus)
       if (pollInterval) clearInterval(pollInterval)
     }
   }, [showPermissionModal, accessToken])
@@ -139,46 +142,37 @@ export default function SettingsPage() {
       const deviceId = getOrCreateDeviceId()
 
       if (enabled) {
-        // 알림 켜기: 브라우저 권한 확인 후 서버 업데이트
-        console.log("알림 권한 확인 중...")
         const currentPermission = Notification.permission
 
         if (currentPermission === "granted") {
-          // 이미 권한이 허용되어 있으면 바로 API 호출
-          setNotificationsEnabled(true)
+          // 권한 허용됨 → DB 업데이트
           await updateDeviceNotificationSettings(deviceId, true)
-          console.log("알림 설정 업데이트 성공: true (기존 권한 사용)")
+          setNotificationsEnabled(true)
         } else if (currentPermission === "denied") {
-          // 권한이 차단된 경우 - 안내 모달 표시
-          setNotificationsEnabled(false)
+          // 권한 차단됨 → 안내 모달 표시
           setShowPermissionModal(true)
-          console.log("알림 권한이 차단되어 있음 (denied) - 모달 표시")
         } else {
-          // 권한이 아직 결정되지 않은 경우 (default) - 권한 요청
+          // 권한 미결정 → 권한 요청
           const permission = await Notification.requestPermission()
-          console.log("사용자 선택:", permission)
 
           if (permission === "granted") {
-            // 권한 허용 시
-            setNotificationsEnabled(true)
+            const token = await requestFCMToken(accessToken)
+            if (token) {
+              await onForegroundMessage()
+              await setupTokenRefreshListener(accessToken)
+            }
             await updateDeviceNotificationSettings(deviceId, true)
-            console.log("알림 설정 업데이트 성공: true (새 권한 허용)")
-          } else {
-            // 권한 거부 시
-            setNotificationsEnabled(false)
-            console.log("사용자가 알림 권한을 거부했습니다")
+            setNotificationsEnabled(true)
           }
         }
       } else {
-        // 알림 끄기: 서버에 알림 비활성화 요청
-        setNotificationsEnabled(false)
+        // 알림 끄기
         await updateDeviceNotificationSettings(deviceId, false)
-        console.log("알림 설정 업데이트 성공: false")
+        setNotificationsEnabled(false)
       }
     } catch (error: any) {
       const errorMessage = error?.message || "알림 설정 업데이트에 실패했습니다"
       console.error("알림 설정 업데이트 실패:", errorMessage, error)
-      // 실패 시 원래 상태로 복구
       setNotificationsEnabled(!enabled)
       toast.error(errorMessage)
     } finally {
@@ -342,16 +336,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-
-              {/* 권한 확인 중 표시 */}
-              {isCheckingPermission && (
-                <div className="w-full bg-primary/10 rounded-xl p-3 mb-4 flex items-center gap-3">
-                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm text-primary font-medium">
-                    브라우저 설정 확인 중...
-                  </p>
-                </div>
-              )}
 
               {/* 버튼 */}
               <button
