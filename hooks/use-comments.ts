@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { Comment } from "@/types/entities"
 import type { CommentResponse, CommentReplyResponse } from "@/types/api"
 import * as commentsApi from "@/lib/api/comments"
+import { useAuthContext } from "@/contexts/auth-context"
 
 /**
  * 날짜 포맷 함수 (MM/DD HH:mm)
@@ -57,6 +58,7 @@ function toComment(response: CommentResponse): Comment {
 }
 
 export function useComments(questionId: string) {
+  const { user } = useAuthContext()
   const [comments, setComments] = useState<Comment[]>([])
   const [newCommentText, setNewCommentText] = useState("")
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
@@ -67,21 +69,12 @@ export function useComments(questionId: string) {
   const [hasMore, setHasMore] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 현재 사용자 ID (AuthContext에서 가져와야 하지만 일단 localStorage에서)
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  // 현재 사용자 ID (AuthContext에서 가져옴)
+  const currentUserId = user?.id ?? null
 
   // 중복 호출 방지
   const isLoadingRef = useRef(false)
   const isSubmittingRef = useRef(false)
-
-  // 현재 사용자 ID 로드
-  useEffect(() => {
-    // TODO: AuthContext에서 실제 userId 가져오기
-    const storedUserId = localStorage.getItem("user_id")
-    if (storedUserId) {
-      setCurrentUserId(Number(storedUserId))
-    }
-  }, [])
 
   // 댓글 목록 조회
   const fetchComments = useCallback(async (pageNum = 1, append = false) => {
