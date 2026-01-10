@@ -47,6 +47,7 @@ export interface QuestionResponse {
   participants: number
   hasVoted: boolean
   userChoice: number | null
+  commentCount: number
   canVote?: boolean
   canChangeVote?: boolean
   canViewResults?: boolean

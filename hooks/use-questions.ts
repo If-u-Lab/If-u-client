@@ -33,7 +33,7 @@ export function toQuestion(response: QuestionResponse, isToday = false): Questio
     options: [response.choice1, response.choice2],
     totalVotes: response.participants,
     votes,
-    commentCount: 0, // TODO: 댓글 API 연동 시 업데이트
+    commentCount: response.commentCount,
     date: formatDate(response.publishAt),
     isToday,
     status: response.status,
