@@ -58,16 +58,17 @@ export function useUserProfile() {
       const response = await usersApi.getMe()
       const data = response.data
 
+      const stats = data.stats || {}
       setProfile({
         id: data.id.toString(),
         username: data.nickname,
-        totalVotes: data.stats.totalVotes,
-        totalComments: data.stats.totalComments,
-        engagementRate: Math.round(data.stats.participationRate),
-        majorityRate: Math.round(data.stats.majorityRate),
-        currentStreak: data.stats.currentStreak,
-        ticketCount: data.stats.ticketCount,
-        recentActivity: convertWeeklyActivity(data.stats.weeklyActivity),
+        totalVotes: stats.totalVotes ?? 0,
+        totalComments: stats.totalComments ?? 0,
+        engagementRate: Math.round(stats.participationRate ?? 0),
+        majorityRate: Math.round(stats.majorityRate ?? 0),
+        currentStreak: stats.currentStreak ?? 0,
+        ticketCount: stats.ticketCount ?? 0,
+        recentActivity: convertWeeklyActivity(stats.weeklyActivity ?? []),
         bestComments: [],
       })
     } catch (err) {
