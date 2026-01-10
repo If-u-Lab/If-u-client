@@ -6,6 +6,7 @@ import { QuestionCard } from "@/components/question-card"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
 import { PullToRefresh } from "@/components/pull-to-refresh"
 import { TicketModal } from "@/components/ticket-modal"
+import { NotificationPromptModal } from "@/components/notification-prompt-modal"
 import { useQuestionsContext } from "@/contexts/questions-context"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useTicketModal } from "@/hooks/use-ticket-modal"
@@ -17,7 +18,7 @@ import type { Question } from "@/types/entities"
 
 export default function HomePage() {
   const router = useRouter()
-  const { isLoading: authLoading } = useAuthContext()
+  const { isLoading: authLoading, isAuthenticated } = useAuthContext()
   const {
     todayQuestion,
     fetchTodayQuestion,
@@ -42,6 +43,20 @@ export default function HomePage() {
 
   const [topQuestions, setTopQuestions] = useState<Question[]>([])
   const [isLoadingTop, setIsLoadingTop] = useState(true)
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false)
+
+  // 로그인 후 알림 동의 모달 표시 (최초 1회)
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      const hasSeenPrompt = localStorage.getItem("notification_prompt_shown")
+      if (!hasSeenPrompt && typeof window !== "undefined" && "Notification" in window) {
+        // 이미 권한이 허용되어 있으면 표시 안 함
+        if (Notification.permission !== "granted") {
+          setShowNotificationPrompt(true)
+        }
+      }
+    }
+  }, [authLoading, isAuthenticated])
 
   // 인증 완료 후 오늘의 질문 & Top 5 로드
   useEffect(() => {
@@ -158,6 +173,11 @@ export default function HomePage() {
           onUse={useTicket}
           onClose={closeModal}
         />
+
+        <NotificationPromptModal
+          isOpen={showNotificationPrompt}
+          onClose={() => setShowNotificationPrompt(false)}
+        />
       </div>
     )
   }
@@ -233,6 +253,11 @@ export default function HomePage() {
         isUsing={isUsing}
         onUse={useTicket}
         onClose={closeModal}
+      />
+
+      <NotificationPromptModal
+        isOpen={showNotificationPrompt}
+        onClose={() => setShowNotificationPrompt(false)}
       />
     </div>
     </PullToRefresh>
