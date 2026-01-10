@@ -1,5 +1,10 @@
 import { messaging } from "./settingFCM";
 import { getToken, onMessage } from "firebase/messaging";
+import {
+  FCM_TOKEN_STORAGE_KEY,
+  FCM_CUSTOM_EVENTS,
+  FCM_TOKEN_REFRESH_INTERVAL
+} from "./fcmConstants";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
@@ -75,6 +80,18 @@ export const requestFCMToken = async (accessToken?: string | null) => {
     if (permission === "granted") {
       console.log("알림 권한 허용됨 - FCM 토큰 발급 시작");
 
+      // Service Worker가 완전히 활성화될 때까지 대기
+      if ('serviceWorker' in navigator) {
+        try {
+          console.log("Service Worker 활성화 대기 중...");
+          await navigator.serviceWorker.ready;
+          console.log("Service Worker 활성화 완료");
+        } catch (error) {
+          console.error("Service Worker 대기 중 오류:", error);
+          return null;
+        }
+      }
+
       // messaging 함수 실행해서 객체 가져오기
       const messagingInstance = await messaging();
       if (!messagingInstance) {
@@ -88,6 +105,8 @@ export const requestFCMToken = async (accessToken?: string | null) => {
 
       if (token) {
         console.log("FCM 토큰 발급 성공:", token);
+        // localStorage에 토큰 저장 (갱신 감지용)
+        localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
         await saveTokenToServer(token, accessToken);
         return token;
       } else {
@@ -176,10 +195,56 @@ export const onForegroundMessage = async () => {
       // 알림 클릭 시 페이지 이동 (CustomEvent로 React Router에 위임)
       notification.onclick = () => {
         window.focus();
-        window.dispatchEvent(new CustomEvent('fcm-navigate', { detail: redirectPath }));
+        window.dispatchEvent(new CustomEvent(FCM_CUSTOM_EVENTS.NAVIGATE, { detail: redirectPath }));
       };
     }
   });
 
   return unsubscribe;
+};
+
+/**
+ * FCM 토큰 갱신 리스너 등록
+ */
+export const setupTokenRefreshListener = async (accessToken?: string | null) => {
+  try {
+    const messagingInstance = await messaging();
+    if (!messagingInstance) {
+      console.log("Firebase Messaging 초기화 실패 - 토큰 갱신 리스너 등록 불가");
+      return null;
+    }
+
+    console.log("FCM 토큰 주기적 검증 시작 (10분 간격)");
+
+    // 주기적으로 토큰 검증 및 갱신 (10분마다)
+    const tokenRefreshInterval = setInterval(async () => {
+      try {
+        const currentToken = await getToken(messagingInstance, {
+          vapidKey: VAPID_KEY,
+        });
+
+        if (currentToken) {
+          // localStorage에 저장된 마지막 토큰과 비교
+          const lastToken = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
+
+          if (lastToken !== currentToken) {
+            console.log("FCM 토큰 변경 감지 (주기적 검증) - 서버 업데이트");
+            localStorage.setItem(FCM_TOKEN_STORAGE_KEY, currentToken);
+            await saveTokenToServer(currentToken, accessToken);
+          }
+        }
+      } catch (error: any) {
+        console.error("토큰 갱신 검증 실패:", error?.message || error);
+      }
+    }, FCM_TOKEN_REFRESH_INTERVAL);
+
+    // Cleanup 함수 반환
+    return () => {
+      clearInterval(tokenRefreshInterval);
+      console.log("FCM 토큰 주기적 검증 중단");
+    };
+  } catch (error: any) {
+    console.error("토큰 갱신 리스너 등록 실패:", error?.message || error);
+    return null;
+  }
 };
