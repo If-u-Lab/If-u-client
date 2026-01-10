@@ -8,9 +8,10 @@ import { useComments } from "@/hooks/use-comments"
 interface CommentSectionProps {
   questionId: string
   commentCount: number
+  isCommentDisabled?: boolean
 }
 
-export function CommentSection({ questionId, commentCount }: CommentSectionProps) {
+export function CommentSection({ questionId, commentCount, isCommentDisabled = false }: CommentSectionProps) {
   const {
     comments,
     newCommentText,
@@ -70,9 +71,9 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* 댓글 목록 - 스크롤 영역 */}
-      <div className="flex-1 overflow-y-auto px-5 md:px-8 py-4">
+    <div>
+      {/* 댓글 목록 */}
+      <div className="px-5 md:px-8 py-4">
         <div className="space-y-0">
           {comments.length === 0 && !isLoading ? (
             <p className="text-sm text-muted-foreground text-center py-8">
@@ -95,7 +96,7 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
                     isOwn={isOwnComment(comment.userId)}
                     isDeleted={comment.isDeleted}
                     deletedBy={comment.deletedBy}
-                    onReply={!comment.isDeleted ? () => setReplyingTo(replyingTo === comment.id ? null : comment.id) : undefined}
+                    onReply={!comment.isDeleted && !isCommentDisabled ? () => setReplyingTo(replyingTo === comment.id ? null : comment.id) : undefined}
                     onLike={() => toggleLike(comment.id)}
                     onDelete={() => deleteComment(comment.id)}
                     onBlock={() => blockUser(comment.id)}
@@ -128,19 +129,23 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
                   )}
 
                   {/* 답글 입력 - 삭제된 댓글에는 답글 불가 */}
-                  {replyingTo === comment.id && !comment.isDeleted && (
+                  {replyingTo === comment.id && !comment.isDeleted && !isCommentDisabled && (
                     <div className="mt-3 ml-6 pl-3 border-l-2 border-muted">
                       <div className="flex items-center gap-2">
-                        <input
-                          type="text"
+                        <textarea
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
                           placeholder="답글을 입력하세요..."
-                          className="flex-1 px-3 py-2 bg-muted/50 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:bg-muted"
+                          rows={1}
+                          className="flex-1 px-3 py-2 bg-muted/50 rounded-lg text-base text-foreground placeholder-muted-foreground focus:outline-none focus:bg-muted resize-none min-h-[36px] max-h-[120px]"
+                          style={{ fontSize: '16px' }}
+                          onInput={(e) => {
+                            const target = e.target as HTMLTextAreaElement
+                            target.style.height = 'auto'
+                            target.style.height = Math.min(target.scrollHeight, 120) + 'px'
+                          }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleSubmitReply(comment.id)
-                            } else if (e.key === "Escape") {
+                            if (e.key === "Escape") {
                               setReplyingTo(null)
                             }
                           }}
@@ -176,30 +181,32 @@ export function CommentSection({ questionId, commentCount }: CommentSectionProps
       </div>
 
       {/* 댓글 입력 - 하단 고정 */}
-      <div className="flex-shrink-0 bg-background border-t border-border px-5 py-3">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newCommentText}
-            onChange={(e) => setNewCommentText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSubmitComment()
-              }
-            }}
-            placeholder="댓글을 입력하세요..."
-            className="flex-1 px-3 py-2.5 bg-muted/50 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:bg-muted"
-          />
-          <button
-            onClick={handleSubmitComment}
-            disabled={!newCommentText.trim() || isSubmitting}
-            className="p-2 text-primary/60 disabled:opacity-40"
-          >
-            <PaperAirplaneIcon className="w-5 h-5" />
-          </button>
+      {!isCommentDisabled && (
+        <div className="fixed bottom-16 md:bottom-20 left-0 right-0 bg-background border-t border-border px-5 py-3 z-20">
+          <div className="max-w-2xl mx-auto flex items-center gap-2">
+            <textarea
+              value={newCommentText}
+              onChange={(e) => setNewCommentText(e.target.value)}
+              placeholder="댓글을 입력하세요..."
+              rows={1}
+              className="flex-1 px-3 py-2.5 bg-muted/50 rounded-lg text-base text-foreground placeholder-muted-foreground focus:outline-none focus:bg-muted resize-none min-h-[40px] max-h-[120px]"
+              style={{ fontSize: '16px' }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement
+                target.style.height = 'auto'
+                target.style.height = Math.min(target.scrollHeight, 120) + 'px'
+              }}
+            />
+            <button
+              onClick={handleSubmitComment}
+              disabled={!newCommentText.trim() || isSubmitting}
+              className="p-2 text-primary/60 disabled:opacity-40"
+            >
+              <PaperAirplaneIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

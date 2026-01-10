@@ -105,11 +105,10 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] max-w-2xl mx-auto">
-      {/* 고정 상단: 헤더 + 질문 */}
-      <div className="flex-shrink-0 px-5 pt-6 pb-4 md:px-8 md:pt-10 md:pb-6 bg-background border-b border-border">
-        {/* Header */}
-        <div className="relative flex items-center justify-center mb-4">
+    <div className="max-w-2xl mx-auto pb-20">
+      {/* 헤더 */}
+      <div className="sticky top-0 z-10 bg-background px-5 pt-6 pb-3 md:px-8 md:pt-10 md:pb-4">
+        <div className="relative flex items-center justify-center">
           <button
             onClick={() => router.back()}
             className="absolute left-0 p-2.5 active:bg-muted rounded-lg transition-colors"
@@ -118,7 +117,10 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
           </button>
           <span className="text-lg font-medium text-muted-foreground">{question.date}</span>
         </div>
+      </div>
 
+      {/* 질문 영역 - 스크롤과 함께 올라감 */}
+      <div className="px-5 pb-4 md:px-8 md:pb-6">
         {/* Title & Description */}
         <div className="space-y-2 mb-4">
           <h1 className="text-xl md:text-2xl font-bold text-foreground leading-tight">
@@ -176,10 +178,14 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      {/* 스크롤 가능한 댓글 영역 */}
+      {/* 댓글 영역 */}
       {canViewResults && (
-        <div className="flex-1 overflow-y-auto">
-          <CommentSection questionId={question.id} commentCount={question.commentCount} />
+        <div className="border-t border-border">
+          <CommentSection
+            questionId={question.id}
+            commentCount={question.commentCount}
+            isCommentDisabled={question.status === "CLOSED"}
+          />
         </div>
       )}
     </div>
