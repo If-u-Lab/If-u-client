@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { BellIcon } from "@heroicons/react/24/outline"
 import { updateDeviceNotificationSettings } from "@/lib/notification-api"
-import { getOrCreateDeviceId } from "@/src/lib/fcmTokenManager"
+import { getOrCreateDeviceId, requestFCMToken, onForegroundMessage, setupTokenRefreshListener } from "@/src/lib/fcmTokenManager"
+import { useAuthContext } from "@/contexts/auth-context"
 
 interface NotificationPromptModalProps {
   isOpen: boolean
@@ -12,6 +13,7 @@ interface NotificationPromptModalProps {
 
 export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptModalProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const { accessToken } = useAuthContext()
 
   if (!isOpen) return null
 
@@ -30,6 +32,14 @@ export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptM
 
       if (permission === "granted") {
         const deviceId = getOrCreateDeviceId()
+
+        // FCM 토큰 요청 및 리스너 설정
+        const token = await requestFCMToken(accessToken)
+        if (token) {
+          await onForegroundMessage()
+          await setupTokenRefreshListener(accessToken)
+        }
+
         await updateDeviceNotificationSettings(deviceId, true)
       } else if (permission === "denied") {
         alert("알림이 차단되어 있어요.\n\n브라우저 주소창 왼쪽의 자물쇠를 눌러 알림을 허용해주세요.")
