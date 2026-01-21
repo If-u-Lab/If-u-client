@@ -49,6 +49,7 @@ export function useAuth() {
     } finally {
       // API 실패 여부와 관계없이 로컬 상태 초기화
       removeStoredAccessToken()
+      localStorage.removeItem("notification_prompt_shown")
       setAccessToken(null)
       setUser(null)
     }
