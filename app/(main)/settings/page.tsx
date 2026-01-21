@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon, ArrowRightOnRectangleIcon, BellIcon } from "@heroicons/react/24/outline"
+import { ArrowLeftIcon, ArrowLeftStartOnRectangleIcon, TrashIcon, ArrowRightOnRectangleIcon, BellIcon, DevicePhoneMobileIcon, ArrowUpOnSquareIcon, PlusIcon, LockClosedIcon, CheckIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline"
 import { Switch } from "@/components/ui/switch"
 import { useState, useEffect } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
@@ -8,6 +8,18 @@ import { useRouter } from "next/navigation"
 import { getDeviceNotificationSettings, updateDeviceNotificationSettings } from "@/lib/notification-api"
 import { getOrCreateDeviceId, requestFCMToken, onForegroundMessage, setupTokenRefreshListener } from "@/src/lib/fcmTokenManager"
 import { toast } from "sonner"
+
+// iOS 감지
+function isIOS(): boolean {
+  if (typeof window === "undefined") return false
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream
+}
+
+// PWA(standalone) 모드 감지
+function isStandalone(): boolean {
+  if (typeof window === "undefined") return false
+  return window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true
+}
 
 export default function SettingsPage() {
   const { logout, deleteAccount, isAuthenticated, user, accessToken } = useAuthContext()
@@ -18,6 +30,14 @@ export default function SettingsPage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [isCheckingPermission, setIsCheckingPermission] = useState(false)
+  const [showIOSGuideModal, setShowIOSGuideModal] = useState(false)
+
+  // iOS 비PWA 감지
+  const [isiOSNonPWA, setIsiOSNonPWA] = useState(false)
+
+  useEffect(() => {
+    setIsiOSNonPWA(isIOS() && !isStandalone())
+  }, [])
 
   // 서버에서 알림 설정 조회 및 토글 동기화
   const loadNotificationSettings = async () => {
@@ -145,6 +165,13 @@ export default function SettingsPage() {
       const deviceId = getOrCreateDeviceId()
 
       if (enabled) {
+        // iOS 비PWA인 경우 홈화면 추가 안내
+        if (isiOSNonPWA) {
+          setShowIOSGuideModal(true)
+          setIsUpdating(false)
+          return
+        }
+
         const currentPermission = Notification.permission
 
         if (currentPermission === "granted") {
@@ -250,6 +277,13 @@ export default function SettingsPage() {
               disabled={isUpdating}
             />
           </div>
+          <button
+            onClick={() => setShowIOSGuideModal(true)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground active:opacity-70"
+          >
+            <QuestionMarkCircleIcon className="w-4 h-4 shrink-0" />
+            <span>iOS의 경우, 홈화면에 추가해야 알림을 받을 수 있어요</span>
+          </button>
         </div>
 
         {/* Account Actions */}
@@ -285,67 +319,108 @@ export default function SettingsPage() {
       {/* 알림 권한 안내 모달 */}
       {showPermissionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* 배경 오버레이 */}
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setShowPermissionModal(false)}
           />
-
-          {/* 모달 */}
           <div className="relative bg-card rounded-2xl border border-border p-6 mx-5 max-w-sm w-full shadow-xl">
             <div className="flex flex-col items-center text-center">
-              {/* 아이콘 */}
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <BellIcon className="w-8 h-8 text-primary" />
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <BellIcon className="w-7 h-7 text-primary" />
               </div>
-
-              {/* 제목 */}
-              <h3 className="text-lg font-semibold text-foreground mb-6">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 알림 권한이 차단되어 있어요
               </h3>
-
-              {/* 안내 단계 */}
-              <div className="w-full bg-muted/30 rounded-xl p-4 mb-4 text-left space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-semibold text-primary">1</span>
+              <p className="text-sm text-muted-foreground mb-6">
+                아래 단계를 따라 알림을 허용해주세요
+              </p>
+              <div className="w-full space-y-3 mb-6">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <LockClosedIcon className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">
-                      주소창 왼쪽의 <strong className="text-primary">자물쇠 아이콘</strong>을 클릭하세요
-                    </p>
-                  </div>
+                  <p className="text-sm text-foreground">
+                    주소창 왼쪽의 <span className="font-semibold">자물쇠</span>를 눌러주세요
+                  </p>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-semibold text-primary">2</span>
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <BellIcon className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">
-                      <strong className="text-primary">알림</strong> 항목을 찾아 <strong className="text-primary">허용</strong>으로 변경하세요
-                    </p>
-                  </div>
+                  <p className="text-sm text-foreground">
+                    <span className="font-semibold">알림</span>을 <span className="font-semibold">허용</span>으로 변경해주세요
+                  </p>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-semibold text-primary">3</span>
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <CheckIcon className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">
-                      이 페이지로 돌아오면 자동으로 적용됩니다
-                    </p>
-                  </div>
+                  <p className="text-sm text-foreground">
+                    이 페이지로 돌아오면 자동으로 적용돼요
+                  </p>
                 </div>
               </div>
-
-              {/* 버튼 */}
               <button
                 onClick={() => setShowPermissionModal(false)}
-                className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:opacity-70 transition-opacity"
+                className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
               >
-                확인
+                확인했어요
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS 홈화면 추가 가이드 모달 */}
+      {showIOSGuideModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowIOSGuideModal(false)}
+          />
+          <div className="relative bg-card rounded-2xl border border-border p-6 mx-5 max-w-sm w-full shadow-xl">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <DevicePhoneMobileIcon className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                홈화면에 추가해주세요
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                아이폰에서 알림을 받으려면<br />
+                홈화면에 앱을 추가해야 해요
+              </p>
+              <div className="w-full space-y-3 mb-6">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <ArrowUpOnSquareIcon className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="text-sm text-foreground">
+                    하단의 <span className="font-semibold">공유 버튼</span>을 눌러주세요
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <PlusIcon className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="text-sm text-foreground">
+                    <span className="font-semibold">홈 화면에 추가</span>를 선택해주세요
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <BellIcon className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="text-sm text-foreground">
+                    추가 후 앱을 열면 알림을 받을 수 있어요
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowIOSGuideModal(false)}
+                className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
+              >
+                확인했어요
               </button>
             </div>
           </div>
