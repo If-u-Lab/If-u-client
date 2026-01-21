@@ -8,11 +8,12 @@ interface InitialLoginScreenProps {
 
 export function InitialLoginScreen({ onStartOnboarding }: InitialLoginScreenProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary via-primary/95 to-primary/90 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.55_0.22_264)] via-[oklch(0.51_0.24_266)] to-[oklch(0.47_0.26_268)] flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* 배경 패턴 */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-white rounded-full blur-3xl" />
-        <div className="absolute bottom-32 right-10 w-40 h-40 bg-white rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-40 h-40 bg-white rounded-full blur-3xl" />
+        <div className="absolute bottom-32 right-10 w-48 h-48 bg-white rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/30 rounded-full blur-3xl" />
       </div>
 
       <div className="text-center space-y-12 max-w-sm relative z-10">
@@ -50,7 +51,7 @@ export function InitialLoginScreen({ onStartOnboarding }: InitialLoginScreenProp
           </Button>
         </div>
 
-        <p className="text-xs text-white/90 px-6 leading-relaxed">
+        <p className="text-xs text-white/90 px-6 leading-relaxed -mt-7">
           서비스 이용약관 및 개인정보 처리방침에 동의합니다
         </p>
       </div>

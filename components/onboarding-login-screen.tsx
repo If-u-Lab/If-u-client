@@ -10,7 +10,7 @@ export function OnboardingLoginScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary via-primary/95 to-primary/90 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.55_0.22_264)] via-[oklch(0.51_0.24_266)] to-[oklch(0.47_0.26_268)] flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* 배경 장식 */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white rounded-full blur-3xl" />
@@ -64,7 +64,7 @@ export function OnboardingLoginScreen() {
           </button>
         </div>
 
-        <p className="text-xs text-white/90 px-4">
+        <p className="text-xs text-white/90 px-4 -mt-4">
           로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의하게 됩니다
         </p>
       </div>
