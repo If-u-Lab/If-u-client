@@ -51,7 +51,7 @@ export function OnboardingCarousel({ onComplete }: OnboardingCarouselProps) {
       {/* 상단 콘텐츠 */}
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm mx-auto">
         {/* 아이콘 */}
-        <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-8">
+        <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-10">
           <IconComponent className="w-10 h-10 text-primary" />
         </div>
 
@@ -61,7 +61,7 @@ export function OnboardingCarousel({ onComplete }: OnboardingCarouselProps) {
         </h2>
 
         {/* 설명 */}
-        <p className="text-gray-500 text-[14px] leading-relaxed text-center whitespace-pre-line mt-4">
+        <p className="text-gray-500 text-[14px] leading-loose text-center whitespace-pre-line mt-5">
           {slide.description}
         </p>
 

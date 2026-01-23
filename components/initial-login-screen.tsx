@@ -18,19 +18,19 @@ export function InitialLoginScreen({ onStartOnboarding }: InitialLoginScreenProp
           alt="If u?"
           width={100}
           height={40}
-          className="mb-10"
+          className="mb-12"
           priority
         />
 
         {/* 메인 카피 */}
-        <h1 className="text-[24px] font-bold text-gray-900 leading-tight text-center tracking-tight">
+        <h1 className="text-[24px] font-bold text-gray-900 leading-snug text-center tracking-tight">
           만약 이 상황에<br />
           <span className="text-primary">너라면</span>,<br />
           어떤 선택을 할까?
         </h1>
 
         {/* 설명 텍스트 */}
-        <p className="text-gray-500 text-[14px] leading-relaxed text-center mt-4">
+        <p className="text-gray-500 text-[14px] leading-loose text-center mt-6">
           논란의 순간, 당신의 선택은?<br />
           두 가지 의견 중 하나를 고르고,<br />
           투표와 댓글로 생각을 나누세요
