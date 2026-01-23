@@ -131,7 +131,7 @@ export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptM
             <div className="flex flex-col gap-2 w-full">
               <button
                 onClick={handleSkip}
-                className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
+                className="w-full py-3 px-4 bg-primary/80 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
               >
                 확인했어요
               </button>
@@ -170,7 +170,7 @@ export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptM
             <button
               onClick={handleAllow}
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform disabled:opacity-50"
+              className="w-full py-3 px-4 bg-primary/80 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">

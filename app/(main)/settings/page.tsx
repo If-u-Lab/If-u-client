@@ -362,7 +362,7 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={() => setShowPermissionModal(false)}
-                className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
+                className="w-full py-3 px-4 bg-primary/80 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
               >
                 확인했어요
               </button>
@@ -418,7 +418,7 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={() => setShowIOSGuideModal(false)}
-                className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
+                className="w-full py-3 px-4 bg-primary/80 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
               >
                 확인했어요
               </button>
@@ -454,7 +454,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setShowDeleteModal(false)}
                   disabled={isDeleting}
-                  className="w-full py-3 px-4 bg-primary/60 text-white rounded-xl font-medium text-[15px] active:opacity-70 transition-opacity disabled:opacity-50"
+                  className="w-full py-3 px-4 bg-primary/80 text-white rounded-xl font-medium text-[15px] active:opacity-70 transition-opacity disabled:opacity-50"
                 >
                   계속 함께하기
                 </button>

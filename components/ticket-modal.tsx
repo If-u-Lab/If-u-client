@@ -45,7 +45,7 @@ export function TicketModal({
               disabled={ticketCount === 0 || isUsing}
               className={`w-full py-3 px-4 rounded-xl font-medium text-[15px] active:scale-95 transition-transform ${
                 ticketCount > 0 && !isUsing
-                  ? "bg-primary/60 text-white"
+                  ? "bg-primary/80 text-white"
                   : "bg-muted text-muted-foreground cursor-not-allowed"
               }`}
             >
