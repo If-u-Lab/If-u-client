@@ -182,7 +182,7 @@ export function QuestionCard({
               handleSubmit()
             }}
             disabled={isLoading || !isVoteChangeable}
-            className="w-full py-3 bg-primary/60 text-white rounded-lg font-semibold text-base transition-all active:scale-[0.98] active:bg-primary/70 disabled:opacity-60 disabled:cursor-wait"
+            className="w-full py-3 bg-primary/80 text-white rounded-lg font-semibold text-base transition-all active:scale-[0.98] active:bg-primary/90 disabled:opacity-60 disabled:cursor-wait"
           >
             {isLoading ? "제출 중..." : hasVoted ? "투표 변경" : "제출"}
           </button>
