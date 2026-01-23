@@ -372,8 +372,7 @@ export default function SettingsPage() {
                 홈화면에 추가하기
               </h3>
               <p className="text-sm text-muted-foreground mb-6">
-                홈화면에 추가해야<br />
-                알림을 보내드릴 수 있어요
+                홈화면에 추가해야 알림을 보내드릴 수 있어요
               </p>
               <div className="w-full space-y-3 mb-4">
                 <div className="flex items-center gap-3 text-left">
@@ -402,7 +401,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mb-6 bg-muted/50 rounded-lg px-3 py-2 w-full">
-                💡 iOS(아이폰/아이패드)의 경우 반드시 <span className="font-semibold">Safari</span>에서 진행해야 해요
+                iOS의 경우 반드시 <span className="font-semibold">Safari</span>에서 진행해야 해요
               </p>
               <button
                 onClick={() => setShowHomeScreenGuideModal(false)}
