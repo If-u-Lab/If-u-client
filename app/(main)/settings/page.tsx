@@ -9,18 +9,6 @@ import { getDeviceNotificationSettings, updateDeviceNotificationSettings } from 
 import { getOrCreateDeviceId, requestFCMToken, onForegroundMessage, setupTokenRefreshListener } from "@/src/lib/fcmTokenManager"
 import { toast } from "sonner"
 
-// iOS 감지
-function isIOS(): boolean {
-  if (typeof window === "undefined") return false
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream
-}
-
-// PWA(standalone) 모드 감지
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false
-  return window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true
-}
-
 export default function SettingsPage() {
   const { logout, deleteAccount, isAuthenticated, user, accessToken } = useAuthContext()
   const router = useRouter()
@@ -30,14 +18,7 @@ export default function SettingsPage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [isCheckingPermission, setIsCheckingPermission] = useState(false)
-  const [showIOSGuideModal, setShowIOSGuideModal] = useState(false)
-
-  // iOS 비PWA 감지
-  const [isiOSNonPWA, setIsiOSNonPWA] = useState(false)
-
-  useEffect(() => {
-    setIsiOSNonPWA(isIOS() && !isStandalone())
-  }, [])
+  const [showHomeScreenGuideModal, setShowHomeScreenGuideModal] = useState(false)
 
   // 서버에서 알림 설정 조회 및 토글 동기화
   const loadNotificationSettings = async () => {
@@ -66,8 +47,10 @@ export default function SettingsPage() {
     loadNotificationSettings()
   }, [])
 
-  // 브라우저 권한 동기화 
+  // 브라우저 권한 동기화
   useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return
+
     let isSyncing = false
     let lastBrowserPermission = Notification.permission
 
@@ -144,6 +127,8 @@ export default function SettingsPage() {
       return
     }
 
+    if (typeof window === 'undefined' || !('Notification' in window)) return
+
     setIsCheckingPermission(true)
 
     const pollInterval = setInterval(() => {
@@ -165,9 +150,9 @@ export default function SettingsPage() {
       const deviceId = getOrCreateDeviceId()
 
       if (enabled) {
-        // iOS 비PWA인 경우 홈화면 추가 안내
-        if (isiOSNonPWA) {
-          setShowIOSGuideModal(true)
+        // Notification API 미지원 브라우저
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+          toast.error('이 브라우저에서는 알림을 지원하지 않습니다')
           setIsUpdating(false)
           return
         }
@@ -278,11 +263,11 @@ export default function SettingsPage() {
             />
           </div>
           <button
-            onClick={() => setShowIOSGuideModal(true)}
+            onClick={() => setShowHomeScreenGuideModal(true)}
             className="flex items-center gap-1.5 text-xs text-muted-foreground active:opacity-70"
           >
             <QuestionMarkCircleIcon className="w-4 h-4 shrink-0" />
-            <span>iOS의 경우, 홈화면에 추가해야 알림을 받을 수 있어요</span>
+            <span>홈화면에 추가하면 더 편하게 알림을 받을 수 있어요</span>
           </button>
         </div>
 
@@ -371,12 +356,12 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* iOS 홈화면 추가 가이드 모달 */}
-      {showIOSGuideModal && (
+      {/* 홈화면 추가 가이드 모달 */}
+      {showHomeScreenGuideModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/40"
-            onClick={() => setShowIOSGuideModal(false)}
+            onClick={() => setShowHomeScreenGuideModal(false)}
           />
           <div className="relative bg-card rounded-2xl border border-border p-6 mx-5 max-w-sm w-full shadow-xl">
             <div className="flex flex-col items-center text-center">
@@ -384,19 +369,19 @@ export default function SettingsPage() {
                 <DevicePhoneMobileIcon className="w-7 h-7 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                홈화면에 추가해주세요
+                홈화면에 추가하기
               </h3>
               <p className="text-sm text-muted-foreground mb-6">
-                아이폰에서 알림을 받으려면<br />
-                홈화면에 앱을 추가해야 해요
+                홈화면에 추가해야<br />
+                알림을 보내드릴 수 있어요
               </p>
-              <div className="w-full space-y-3 mb-6">
+              <div className="w-full space-y-3 mb-4">
                 <div className="flex items-center gap-3 text-left">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                     <ArrowUpOnSquareIcon className="w-4 h-4 text-primary" />
                   </div>
                   <p className="text-sm text-foreground">
-                    하단의 <span className="font-semibold">공유 버튼</span>을 눌러주세요
+                    브라우저 메뉴에서 <span className="font-semibold">공유</span> 또는 <span className="font-semibold">더보기</span>를 눌러주세요
                   </p>
                 </div>
                 <div className="flex items-center gap-3 text-left">
@@ -416,8 +401,11 @@ export default function SettingsPage() {
                   </p>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mb-6 bg-muted/50 rounded-lg px-3 py-2 w-full">
+                💡 iOS(아이폰/아이패드)의 경우 반드시 <span className="font-semibold">Safari</span>에서 진행해야 해요
+              </p>
               <button
-                onClick={() => setShowIOSGuideModal(false)}
+                onClick={() => setShowHomeScreenGuideModal(false)}
                 className="w-full py-3 px-4 bg-primary/80 text-white rounded-xl font-medium text-[15px] active:scale-95 transition-transform"
               >
                 확인했어요

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { BellIcon, DevicePhoneMobileIcon, PlusIcon, ArrowUpOnSquareIcon } from "@heroicons/react/24/outline"
 import { updateDeviceNotificationSettings } from "@/lib/notification-api"
 import { getOrCreateDeviceId, requestFCMToken, onForegroundMessage, setupTokenRefreshListener } from "@/src/lib/fcmTokenManager"
@@ -11,12 +11,6 @@ interface NotificationPromptModalProps {
   onClose: () => void
 }
 
-// iOS 감지
-function isIOS(): boolean {
-  if (typeof window === "undefined") return false
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream
-}
-
 // PWA(standalone) 모드 감지
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false
@@ -25,53 +19,68 @@ function isStandalone(): boolean {
 
 export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptModalProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [showIOSGuide, setShowIOSGuide] = useState(false)
+  const [showHomeScreenGuide, setShowHomeScreenGuide] = useState(false)
+  const [isPWA, setIsPWA] = useState(false)
   const { accessToken } = useAuthContext()
+
+  useEffect(() => {
+    setIsPWA(isStandalone())
+  }, [])
 
   if (!isOpen) return null
 
-  const needsHomeScreenAdd = isIOS() && !isStandalone()
-
   const handleAllow = async () => {
-    // iOS 비PWA면 가이드 화면으로 전환
-    if (needsHomeScreenAdd) {
-      setShowIOSGuide(true)
-      return
-    }
-
     setIsLoading(true)
     try {
-      // 이미 차단된 상태면 브라우저 설정 안내
-      if (Notification.permission === "denied") {
-        alert("알림이 차단되어 있어요.\n\n브라우저 주소창 왼쪽의 자물쇠를 눌러 알림을 허용해주세요.")
-        localStorage.setItem("notification_prompt_shown", "true")
-        onClose()
-        return
-      }
-
-      const permission = await Notification.requestPermission()
-
-      if (permission === "granted") {
-        const deviceId = getOrCreateDeviceId()
-
-        // FCM 토큰 요청 및 리스너 설정
-        const token = await requestFCMToken(accessToken)
-        if (token) {
-          await onForegroundMessage()
-          await setupTokenRefreshListener(accessToken)
+      // Notification API 지원 여부 확인
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        // 이미 차단된 상태면 브라우저 설정 안내
+        if (Notification.permission === "denied") {
+          alert("알림이 차단되어 있어요.\n\n브라우저 주소창 왼쪽의 자물쇠를 눌러 알림을 허용해주세요.")
+          localStorage.setItem("notification_prompt_shown", "true")
+          // PWA가 아닐 때만 홈화면 가이드 보여줌
+          if (!isPWA) {
+            setShowHomeScreenGuide(true)
+          } else {
+            onClose()
+          }
+          setIsLoading(false)
+          return
         }
 
-        await updateDeviceNotificationSettings(deviceId, true)
-      } else if (permission === "denied") {
-        alert("알림이 차단되어 있어요.\n\n브라우저 주소창 왼쪽의 자물쇠를 눌러 알림을 허용해주세요.")
+        const permission = await Notification.requestPermission()
+
+        if (permission === "granted") {
+          const deviceId = getOrCreateDeviceId()
+
+          // FCM 토큰 요청 및 리스너 설정
+          const token = await requestFCMToken(accessToken)
+          if (token) {
+            await onForegroundMessage()
+            await setupTokenRefreshListener(accessToken)
+          }
+
+          await updateDeviceNotificationSettings(deviceId, true)
+        } else if (permission === "denied") {
+          alert("알림이 차단되어 있어요.\n\n브라우저 주소창 왼쪽의 자물쇠를 눌러 알림을 허용해주세요.")
+        }
       }
 
       localStorage.setItem("notification_prompt_shown", "true")
-      onClose()
+      // PWA가 아닐 때만 홈화면 가이드 보여줌
+      if (!isPWA) {
+        setShowHomeScreenGuide(true)
+      } else {
+        onClose()
+      }
     } catch (error) {
       console.error("알림 설정 실패:", error)
       localStorage.setItem("notification_prompt_shown", "true")
-      onClose()
+      if (!isPWA) {
+        setShowHomeScreenGuide(true)
+      } else {
+        onClose()
+      }
     } finally {
       setIsLoading(false)
     }
@@ -82,8 +91,8 @@ export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptM
     onClose()
   }
 
-  // iOS 가이드 화면 (알림 받기 클릭 후 전환)
-  if (showIOSGuide) {
+  // 홈화면 추가 가이드 화면 (모든 유저에게 표시)
+  if (showHomeScreenGuide) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div
@@ -99,16 +108,16 @@ export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptM
               홈화면에 추가해주세요
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              아이폰에서 알림을 받으려면<br />
-              홈화면에 앱을 추가해야 해요
+              홈화면에 추가해야<br />
+              알림을 보내드릴 수 있어요
             </p>
-            <div className="w-full space-y-3 mb-6">
+            <div className="w-full space-y-3 mb-4">
               <div className="flex items-center gap-3 text-left">
                 <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                   <ArrowUpOnSquareIcon className="w-4 h-4 text-primary" />
                 </div>
                 <p className="text-sm text-foreground">
-                  하단의 <span className="font-semibold">공유 버튼</span>을 눌러주세요
+                  브라우저 메뉴에서 <span className="font-semibold">공유</span> 또는 <span className="font-semibold">더보기</span>를 눌러주세요
                 </p>
               </div>
               <div className="flex items-center gap-3 text-left">
@@ -128,6 +137,9 @@ export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptM
                 </p>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground mb-6 bg-muted/50 rounded-lg px-3 py-2 w-full">
+              iOS의 경우 반드시 <span className="font-semibold">Safari</span>에서 진행해야 해요
+            </p>
             <div className="flex flex-col gap-2 w-full">
               <button
                 onClick={handleSkip}
