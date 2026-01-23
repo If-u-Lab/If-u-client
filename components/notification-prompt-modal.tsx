@@ -108,8 +108,7 @@ export function NotificationPromptModal({ isOpen, onClose }: NotificationPromptM
               홈화면에 추가해주세요
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              홈화면에 추가해야<br />
-              알림을 보내드릴 수 있어요
+              홈화면에 추가해야 알림을 보내드릴 수 있어요
             </p>
             <div className="w-full space-y-3 mb-4">
               <div className="flex items-center gap-3 text-left">
