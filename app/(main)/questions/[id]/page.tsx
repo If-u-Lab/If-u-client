@@ -153,7 +153,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
               >
                 {/* 배경 채우기 - 비율만큼 */}
                 {canViewResults && (
-                  <div className="absolute top-0 left-0 bottom-0 bg-primary/15 transition-all duration-500 rounded-l-lg"
+                  <div className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500"
                     style={{ width: `${question.votes[i]}%` }}
                   />
                 )}

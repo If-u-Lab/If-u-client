@@ -1,15 +1,22 @@
 "use client"
 
+import Image from "next/image"
+
 export function LoadingScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary via-blue-500 to-primary">
-      <div className="text-center space-y-4">
-        <h1 className="text-6xl font-black text-white tracking-tighter">
-          If U?
-        </h1>
-        <p className="text-xl text-white/80">너라면 어떻게 할래?</p>
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-white">
+      <div className="text-center">
+        <Image
+          src="/ifu.png"
+          alt="If u?"
+          width={120}
+          height={48}
+          className="mx-auto mb-3"
+          priority
+        />
+        <p className="text-[14px] text-gray-400">너라면 어떻게 할래?</p>
       </div>
-      <div className="absolute bottom-8 w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+      <div className="absolute bottom-16 w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }

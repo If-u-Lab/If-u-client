@@ -116,14 +116,14 @@ export default function HomePage() {
               </p>
               <button
                 onClick={() => fetchTodayQuestion()}
-                className="h-11 px-8 bg-primary/40 text-white rounded-xl font-medium text-[15px] flex items-center justify-center active:scale-95 transition-transform"
+                className="h-11 px-8 bg-primary/80 text-white rounded-xl font-medium text-[15px] flex items-center justify-center active:scale-95 transition-transform"
               >
                 다시 시도
               </button>
             </>
           ) : (
             <>
-              <BellIcon className="w-12 h-12 text-primary/50 mb-4" />
+              <BellIcon className="w-12 h-12 text-primary/60 mb-4" />
               <p className="text-base font-medium text-foreground mb-1">
                 아직 오늘의 질문이 없어요
               </p>
@@ -132,7 +132,7 @@ export default function HomePage() {
               </p>
               <Link
                 href="/settings"
-                className="h-11 px-8 bg-primary/40 text-white rounded-xl font-medium text-[15px] flex items-center justify-center active:scale-95 transition-transform"
+                className="h-11 px-8 bg-primary/60 text-white rounded-xl font-medium text-[15px] flex items-center justify-center active:scale-95 transition-transform"
               >
                 알림 설정하기
               </Link>
