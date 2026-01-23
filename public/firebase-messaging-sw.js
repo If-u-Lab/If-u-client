@@ -7,6 +7,10 @@ const FCM_MESSAGE_TYPES = {
   NAVIGATE: 'FCM_NAVIGATE',
 };
 
+// 프로덕션 환경 체크 (localhost가 아니면 프로덕션)
+const isProduction = !['localhost', '127.0.0.1'].includes(self.location.hostname);
+const log = (...args) => { if (!isProduction) console.log(...args); };
+
 // PWA 캐시 이름
 const CACHE_NAME = 'if-u-v1';
 const STATIC_ASSETS = [
@@ -20,10 +24,10 @@ const STATIC_ASSETS = [
 
 // Service Worker 설치 시 정적 파일 캐싱
 self.addEventListener('install', (event) => {
-  console.log('Service Worker 설치 중...');
+  log('Service Worker 설치 중...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('정적 파일 캐싱 완료');
+      log('정적 파일 캐싱 완료');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -32,13 +36,13 @@ self.addEventListener('install', (event) => {
 
 // 오래된 캐시 삭제
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker 활성화');
+  log('Service Worker 활성화');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('오래된 캐시 삭제:', cacheName);
+            log('오래된 캐시 삭제:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -93,7 +97,7 @@ const messaging = firebase.messaging();
 
 // 백그라운드 푸시 알림 수신
 messaging.onBackgroundMessage((payload) => {
-  console.log('백그라운드 메시지 수신:', payload);
+  log('백그라운드 메시지 수신:', payload);
 
   // data 필드 우선 사용 (notification 필드는 자동 알림 방지)
   const data = payload.data || {};
@@ -117,12 +121,12 @@ messaging.onBackgroundMessage((payload) => {
 
 // 알림 클릭 시 페이지 이동
 self.addEventListener('notificationclick', (event) => {
-  console.log('알림 클릭:', event);
+  log('알림 클릭:', event);
   event.notification.close();
 
   // 백엔드가 snake_case(redirect_path) 또는 camelCase(redirectPath) 둘 다 지원
   const redirectPath = event.notification.data?.redirect_path || event.notification.data?.redirectPath || '/home';
-  console.log('리다이렉트 경로:', redirectPath);
+  log('리다이렉트 경로:', redirectPath);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
@@ -139,7 +143,7 @@ self.addEventListener('notificationclick', (event) => {
 
       // 열린 창이 없으면 새 창 열기 (절대 URL 필요)
       const fullUrl = new URL(redirectPath, self.location.origin).href;
-      console.log('새 창 열기:', fullUrl);
+      log('새 창 열기:', fullUrl);
 
       if (clients.openWindow) {
         return clients.openWindow(fullUrl);
