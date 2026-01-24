@@ -31,6 +31,11 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     loadQuestion()
   }, [id, fetchQuestionById])
 
+  // API로 불러온 question 객체에서 직접 사용
+  const userVote = question?.userChoice ?? null
+  const hasVoted = question?.hasVoted ?? false
+  const canViewResults = question?.canViewResults ?? hasVoted
+
   // GA4 결과 확인 이벤트 추적 (중복 방지)
   const hasTrackedResultView = useRef(false)
   useEffect(() => {
@@ -42,11 +47,6 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
       })
     }
   }, [question, canViewResults, hasVoted])
-
-  // API로 불러온 question 객체에서 직접 사용
-  const userVote = question?.userChoice ?? null
-  const hasVoted = question?.hasVoted ?? false
-  const canViewResults = question?.canViewResults ?? hasVoted
 
   if (isLoading) {
     return <LoadingSkeleton />
