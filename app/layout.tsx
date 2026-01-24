@@ -6,13 +6,17 @@ import FCMInitializer from "@/src/components/FCMInitializer"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "If U? | 매일의 질문으로 세상을 알아가기",
+  title: "If u? | 매일의 질문으로 세상을 알아가기",
   description: "하루의 질문에 투표하고 커뮤니티와 함께 다양한 관점을 나누세요.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "If U?",
+    title: "If u?",
   },
 }
 
