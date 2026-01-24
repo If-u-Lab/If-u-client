@@ -185,10 +185,14 @@ export function useQuestions() {
         const { userChoice, participants, voteStats } = response.data
 
         // GA4 투표 이벤트 추적
-        sendGAEvent("event", "vote", {
-          question_id: questionId,
-          option: optionIndex === 0 ? "A" : "B",
-        })
+        try {
+          sendGAEvent("event", "vote", {
+            question_id: questionId,
+            option: optionIndex === 0 ? "A" : "B",
+          })
+        } catch (e) {
+          // GA 로드 전이면 무시
+        }
 
         // 질문 상태 업데이트 헬퍼
         const updateQuestion = (q: Question): Question => ({

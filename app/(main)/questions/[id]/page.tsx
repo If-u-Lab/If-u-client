@@ -41,10 +41,14 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   useEffect(() => {
     if (question && canViewResults && !hasTrackedResultView.current) {
       hasTrackedResultView.current = true
-      sendGAEvent("event", "result_view", {
-        question_id: question.id,
-        has_voted: hasVoted,
-      })
+      try {
+        sendGAEvent("event", "result_view", {
+          question_id: question.id,
+          has_voted: hasVoted,
+        })
+      } catch (e) {
+        // GA 로드 전이면 무시
+      }
     }
   }, [question, canViewResults, hasVoted])
 
