@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Analytics } from "@vercel/analytics/next"
+import { GoogleAnalytics } from "@next/third-parties/google"
 import { ClientProviders } from "@/components/client-providers"
 import FCMInitializer from "@/src/components/FCMInitializer"
 import "./globals.css"
@@ -39,6 +40,7 @@ export default function RootLayout({
           {children}
         </ClientProviders>
         <Analytics />
+        <GoogleAnalytics gaId="G-RLFTLVP8DN" />
       </body>
     </html>
   )
