@@ -139,11 +139,15 @@ export function useComments(questionId: string) {
       setNewCommentText("")
 
       // GA4 댓글 이벤트 추적
-      sendGAEvent("event", "comment", {
-        question_id: questionId,
-        comment_length: text.length,
-        is_reply: false,
-      })
+      try {
+        sendGAEvent("event", "comment", {
+          question_id: questionId,
+          comment_length: text.length,
+          is_reply: false,
+        })
+      } catch (e) {
+        // GA 로드 전이면 무시
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "댓글 작성에 실패했습니다")
     } finally {
@@ -183,11 +187,15 @@ export function useComments(questionId: string) {
       setReplyText("")
 
       // GA4 답글 이벤트 추적
-      sendGAEvent("event", "comment", {
-        question_id: questionId,
-        comment_length: text.length,
-        is_reply: true,
-      })
+      try {
+        sendGAEvent("event", "comment", {
+          question_id: questionId,
+          comment_length: text.length,
+          is_reply: true,
+        })
+      } catch (e) {
+        // GA 로드 전이면 무시
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "답글 작성에 실패했습니다")
     } finally {
