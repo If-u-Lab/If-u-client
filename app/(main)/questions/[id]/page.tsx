@@ -1,7 +1,8 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { sendGAEvent } from "@next/third-parties/google"
 import { ArrowLeftIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline"
 import { QuestionCard } from "@/components/question-card"
 import { CommentSection } from "@/components/comment-section"
@@ -29,6 +30,18 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     }
     loadQuestion()
   }, [id, fetchQuestionById])
+
+  // GA4 결과 확인 이벤트 추적 (중복 방지)
+  const hasTrackedResultView = useRef(false)
+  useEffect(() => {
+    if (question && canViewResults && !hasTrackedResultView.current) {
+      hasTrackedResultView.current = true
+      sendGAEvent("event", "result_view", {
+        question_id: question.id,
+        has_voted: hasVoted,
+      })
+    }
+  }, [question, canViewResults, hasVoted])
 
   // API로 불러온 question 객체에서 직접 사용
   const userVote = question?.userChoice ?? null

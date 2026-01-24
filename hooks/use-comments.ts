@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { toast } from "sonner"
+import { sendGAEvent } from "@next/third-parties/google"
 import { Comment } from "@/types/entities"
 import type { CommentResponse, CommentReplyResponse } from "@/types/api"
 import * as commentsApi from "@/lib/api/comments"
@@ -136,6 +137,13 @@ export function useComments(questionId: string) {
       const newComment = toComment(response.data)
       setComments((prev) => [newComment, ...prev])
       setNewCommentText("")
+
+      // GA4 댓글 이벤트 추적
+      sendGAEvent("event", "comment", {
+        question_id: questionId,
+        comment_length: text.length,
+        is_reply: false,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "댓글 작성에 실패했습니다")
     } finally {
@@ -173,6 +181,13 @@ export function useComments(questionId: string) {
       )
       setReplyingTo(null)
       setReplyText("")
+
+      // GA4 답글 이벤트 추적
+      sendGAEvent("event", "comment", {
+        question_id: questionId,
+        comment_length: text.length,
+        is_reply: true,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "답글 작성에 실패했습니다")
     } finally {

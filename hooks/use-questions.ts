@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
+import { sendGAEvent } from "@next/third-parties/google"
 import { Question } from "@/types/entities"
 import type { QuestionResponse } from "@/types/api"
 import * as questionsApi from "@/lib/api/questions"
@@ -182,6 +183,12 @@ export function useQuestions() {
       try {
         const response = await questionsApi.vote(Number(questionId), choice)
         const { userChoice, participants, voteStats } = response.data
+
+        // GA4 투표 이벤트 추적
+        sendGAEvent("event", "vote", {
+          question_id: questionId,
+          option: optionIndex === 0 ? "A" : "B",
+        })
 
         // 질문 상태 업데이트 헬퍼
         const updateQuestion = (q: Question): Question => ({
